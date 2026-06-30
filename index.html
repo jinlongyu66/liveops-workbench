@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- CSP removed for compatibility -->
 <title>🎛️ 直播运营工作台</title>
 <script src="chart.min.js"></script>
 <style>
@@ -15,8 +14,6 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
-
-/* Login Overlay */
 .login-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:20px}
 .login-overlay h1{font-size:24px}
 .login-overlay input{padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:16px;width:280px;text-align:center;font-family:inherit}
@@ -24,75 +21,59 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .login-overlay button{padding:12px 32px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
 .login-overlay .error{color:var(--accent);font-size:14px}
 .login-overlay .hint{color:var(--text2);font-size:12px}
-
 .top-nav{display:flex;justify-content:center;gap:4px;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:var(--shadow);flex-wrap:wrap}
 .top-nav button{padding:8px 16px;border:none;background:transparent;border-radius:20px;cursor:pointer;font-size:14px;color:var(--text2);transition:all .2s;font-weight:500;white-space:nowrap}
 .top-nav button.active{background:var(--accent);color:#fff;font-weight:600}
-
 .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);z-index:100}
 .bottom-nav button{flex:1;padding:8px 2px;border:none;background:transparent;cursor:pointer;font-size:10px;color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:2px}
 .bottom-nav button .icon{font-size:18px}
 .bottom-nav button.active{color:var(--accent);font-weight:600}
-
 .page-container{max-width:800px;margin:0 auto;padding:16px}
 .page{display:none}
 .page.active{display:block}
-
 .card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
 .card h2{font-size:17px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .card h3{font-size:14px;margin-bottom:10px;color:var(--text2)}
-
 .form-group{margin-bottom:12px}
 .form-group label{display:block;font-size:12px;font-weight:500;margin-bottom:4px;color:var(--text2)}
 .form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--accent)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
 .btn-primary{background:var(--accent);color:#fff;width:100%}
 .btn-primary:hover{opacity:.9}
 .btn-outline{background:transparent;border:1.5px solid var(--accent);color:var(--accent)}
 .btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
 .btn-green{background:var(--green);color:#fff}
-
-/* Cards */
 .script-card,.light-card,.streamer-card{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
 .script-card .sc-title{font-weight:600;font-size:14px;margin-bottom:4px}
 .script-card .sc-body{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:8px;white-space:pre-wrap}
-.script-card .sc-actions,.light-card .lc-actions,.streamer-card .st-actions{display:flex;gap:6px}
-
+.script-card .sc-actions{display:flex;gap:6px}
 .chip{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:500}
 .chip-red{background:var(--accent-light);color:var(--accent)}
 .chip-green{background:var(--green-light);color:var(--green)}
 .chip-blue{background:var(--blue-light);color:var(--blue)}
-
 .tag-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
-.tag-row button{padding:4px 12px;border:1px solid var(--border);background:#fff;border-radius:14px;cursor:pointer;font-size:12px}
+.tag-row button{padding:4px 12px;border:1px solid var(--border);background:#fff;border-radius:14px;cursor:pointer;font-size:12px;font-family:inherit}
 .tag-row button.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600}
-
 .recap-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
 .recap-metric{background:var(--bg);padding:12px;border-radius:8px;text-align:center}
 .recap-metric .rm-val{font-size:22px;font-weight:700;color:var(--accent)}
 .recap-metric .rm-label{font-size:11px;color:var(--text2);margin-top:2px}
-
 .chart-wrapper{position:relative;height:260px;margin:12px 0}
-
 .hourly-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:12px}
 @media(min-width:768px){.hourly-grid{grid-template-columns:repeat(8,1fr)}}
 .hourly-item{text-align:center}
 .hourly-item input{width:100%;padding:6px;text-align:center;border:1px solid var(--border);border-radius:6px;font-size:13px}
 .hourly-item label{font-size:10px;color:var(--text2);display:block;margin-bottom:2px}
-
 .worklog-entry{border-left:3px solid var(--accent);padding:8px 12px;margin-bottom:8px;background:var(--bg);border-radius:0 8px 8px 0}
 .worklog-entry .wl-time{font-size:11px;color:var(--text2)}
 .worklog-entry .wl-content{font-size:13px;margin-top:3px}
-
 .status-bar{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);padding:4px 16px;background:var(--card);border-bottom:1px solid var(--border)}
 .status-bar .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px}
 .status-bar .dot.online{background:var(--green)}
 .status-bar .dot.offline{background:var(--orange)}
-
 @media(max-width:640px){
   .top-nav{display:none}.bottom-nav{display:flex}.page-container{padding:10px}.card{padding:14px}
   .form-row,.form-row-3{grid-template-columns:1fr}
@@ -102,22 +83,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 </head>
 <body>
 
-<!-- LOGIN -->
 <div class="login-overlay" id="loginOverlay">
   <h1>🎛️ 运营工作台</h1>
   <input type="password" id="loginPassword" placeholder="输入密码" onkeydown="if(event.key==='Enter')doLogin()">
   <button onclick="doLogin()">🔓 登录</button>
   <div class="error" id="loginError"></div>
-  <div class="hint">默认密码：admin123（登录后在设置页修改）</div>
+  <div class="hint">默认密码：admin123</div>
 </div>
 
-<!-- STATUS BAR -->
 <div class="status-bar" id="statusBar" style="display:none">
   <span><span class="dot online" id="syncDot"></span> <span id="syncStatus">已同步</span></span>
   <span><span id="currentUser"></span> · <a href="#" onclick="logout()" style="color:var(--accent)">退出</a></span>
 </div>
 
-<!-- TOP NAV -->
 <nav class="top-nav" id="topNav" style="display:none">
   <button data-page="scripts" class="active">🎤 话术库</button>
   <button data-page="lighting">💡 灯光库</button>
@@ -129,7 +107,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 
 <div class="page-container">
 
-<!-- SCRIPTS -->
 <div class="page active" id="page-scripts">
   <div class="card"><h2>🎤 话术库</h2>
     <div class="tag-row" id="scriptCatTags"></div>
@@ -144,7 +121,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div id="scriptList"></div></div>
 </div>
 
-<!-- LIGHTING -->
 <div class="page" id="page-lighting">
   <div class="card"><h2>💡 灯光方案库</h2>
     <button class="btn btn-outline btn-sm" style="margin-bottom:12px" onclick="toggleAddLight()">+ 添加方案</button>
@@ -158,7 +134,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div id="lightList"></div></div>
 </div>
 
-<!-- STREAMERS -->
 <div class="page" id="page-streamers">
   <div class="card"><h2>📊 主播管理</h2>
     <button class="btn btn-outline btn-sm" style="margin-bottom:12px" onclick="toggleAddStreamer()">+ 添加主播</button>
@@ -170,7 +145,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div id="streamerList"></div></div>
 </div>
 
-<!-- RECAP -->
 <div class="page" id="page-recap">
   <div class="card"><h2>📝 每日复盘</h2>
     <div class="form-row"><div class="form-group"><label>主播</label><select id="recapStreamer" onchange="onRecapChange()"></select></div>
@@ -180,8 +154,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
         <option value="claude">Claude</option><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option><option value="custom">自定义</option></select></div>
       <div class="form-group"><label>API Key</label><div style="display:flex;gap:6px"><input type="password" id="apiKey" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px"><button class="btn btn-outline btn-sm" onclick="saveApiKey()">保存</button></div></div></div>
       <div id="customEndpointRow" style="display:none"><div class="form-row"><div class="form-group"><label>API 地址</label><input type="text" id="customEndpoint"></div><div class="form-group"><label>模型名</label><input type="text" id="customModel"></div></div></div></div></details>
-
-    <h3>📊 基础数据（从抖音后台对照复制）</h3>
+    <h3>📊 基础数据</h3>
     <div class="form-row-3"><div class="form-group"><label>场观</label><input type="number" id="recapViews"></div><div class="form-group"><label>峰值在线</label><input type="number" id="recapPeak"></div><div class="form-group"><label>停留(秒)</label><input type="number" id="recapStay"></div></div>
     <div class="form-row-3"><div class="form-group"><label>新增粉丝</label><input type="number" id="recapFans"></div><div class="form-group"><label>礼物收入(元)</label><input type="number" id="recapIncome"></div><div class="form-group"><label>付费人数</label><input type="number" id="recapPayers"></div></div>
     <h3>🎁 礼物拆解</h3><div class="form-row"><div class="form-group"><label>大礼物个数</label><input type="number" id="recapBigGift"></div><div class="form-group"><label>大礼物总额</label><input type="number" id="recapBigGiftAmt"></div></div>
@@ -196,22 +169,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
   <div class="card"><h3>📋 复盘历史</h3><div id="recapHistory"></div></div>
 </div>
 
-<!-- WORK LOG -->
 <div class="page" id="page-worklog">
   <div class="card"><h2>📋 工作日志 — <span id="wlDate"></span></h2>
     <div style="display:flex;gap:8px;margin-bottom:12px"><input type="time" id="wlTime" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px"><input type="text" id="wlContent" placeholder="做了什么..." style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px"><button class="btn btn-green btn-sm" onclick="addWorkLog()">+</button></div>
     <div id="workLogList"></div></div>
 </div>
 
-<!-- SETTINGS -->
 <div class="page" id="page-settings">
   <div class="card"><h2>⚙️ 设置</h2>
-    <div class="form-group"><label>修改密码</label><input type="password" id="newPassword" placeholder="输入新密码"></div>
+    <div class="form-group"><label>修改密码</label><input type="password" id="newPassword" placeholder="新密码（至少4位）"></div>
     <button class="btn btn-primary" onclick="changePassword()">🔒 修改密码</button></div>
   <div class="card"><button class="btn btn-outline" onclick="logout()" style="width:100%;color:var(--accent);border-color:var(--accent)">🚪 退出登录</button></div>
 </div>
 
-</div><!-- page-container -->
+</div>
 
 <nav class="bottom-nav" id="bottomNav" style="display:none">
   <button data-page="scripts" class="active"><span class="icon">🎤</span>话术</button>
@@ -223,651 +194,247 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 </nav>
 
 <script>
-// ==================== SECURITY HELPERS ====================
 function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+function sanitizeError(e){var m=(e.message||String(e)).slice(0,100);var l=m.toLowerCase();if(l.includes('fetch')||l.includes('network')||l.includes('failed'))return'网络连接失败，请检查网络';if(l.includes('401')||l.includes('403')||l.includes('unauthorized')||l.includes('jwt')){forceLogout();return'会话过期，请重新登录';}return'操作失败: '+m;}
 
-function sanitizeError(err) {
-  // Don't leak API details to the UI
-  var msg = err.message || String(err);
-  if (msg.length > 100) msg = msg.slice(0, 100) + '…';
-  var lower = msg.toLowerCase();
-  if (lower.includes('fetch') || lower.includes('network') || lower.includes('failed')) {
-    return '网络连接失败，请检查网络后刷新页面';
-  }
-  if (lower.includes('401') || lower.includes('403') || lower.includes('jwt')) {
-    return '登录已过期，请重新登录';
-  }
-  return '操作失败: ' + msg;
-}
-
-// ==================== SUPABASE REST API ====================
 var SB_URL='https://xyeecqpbaxzjrbukipyi.supabase.co';
 var SB_KEY='sb_publishable_vtschTBXX1hOhJ0BYLbOag_jsU2yL4m';
 
-function getToken() {
-  return sessionStorage.getItem('liveops_token') || '';
+function getToken(){return sessionStorage.getItem('liveops_token')||'';}
+
+async function callRpc(fnName,params){
+  var h={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+  var r=await fetch(SB_URL+'/rest/v1/rpc/'+fnName,{method:'POST',headers:h,body:JSON.stringify(params)});
+  if(!r.ok){if(r.status===401||r.status===403){forceLogout();throw new Error('会话过期');}throw new Error(await r.text());}
+  return r.json();
 }
 
-function sbHeaders() {
-  var h = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
-  var t = getToken();
-  if (t) h['x-session-token'] = t;
-  return h;
+var loggedIn=false;
+var D={scripts:[],lighting:[],streamers:[],recaps:[],workLogs:{}};
+var LOGIN_COOLDOWN=0;
+
+document.addEventListener('DOMContentLoaded',function(){document.getElementById('loginError').textContent='⏳ 连接中...';checkSession();});
+
+async function doLogin(){
+  if(LOGIN_COOLDOWN>Date.now()){document.getElementById('loginError').textContent='⏳ 请稍等几秒再试';return;}
+  var pw=document.getElementById('loginPassword').value;if(!pw)return;
+  document.getElementById('loginError').textContent='⏳ 验证中...';
+  try{
+    var token=await callRpc('login',{password_text:pw});
+    if(!token){LOGIN_COOLDOWN=Date.now()+3000;document.getElementById('loginError').textContent='❌ 密码错误';return;}
+    sessionStorage.setItem('liveops_token',token);
+    LOGIN_COOLDOWN=0;await onAuthSuccess();
+  }catch(e){LOGIN_COOLDOWN=Date.now()+5000;document.getElementById('loginError').textContent=sanitizeError(e);}
 }
 
-async function sbGet(table, query) {
-  query = query || '';
-  var url = SB_URL + '/rest/v1/' + table + '?' + query;
-  var resp = await fetch(url, {headers: sbHeaders()});
-  if (!resp.ok) {
-    if (resp.status === 401 || resp.status === 403) {
-      forceLogout();
-      throw new Error('会话过期');
-    }
-    throw new Error(await resp.text());
-  }
-  return resp.json();
+function forceLogout(){sessionStorage.removeItem('liveops_token');loggedIn=false;document.getElementById('loginOverlay').style.display='flex';document.getElementById('statusBar').style.display='none';document.getElementById('topNav').style.display='none';document.getElementById('bottomNav').style.display='none';document.getElementById('loginError').textContent='会话已过期，请重新登录';}
+
+async function logout(){try{if(getToken())await callRpc('logout_fn',{});}catch(e){}sessionStorage.removeItem('liveops_token');location.reload();}
+
+async function changePassword(){
+  var np=document.getElementById('newPassword').value.trim();
+  if(!np)return alert('请输入新密码');if(np.length<4)return alert('密码至少4位');
+  try{var ok=await callRpc('change_pw',{new_password:np});if(ok)alert('✅ 密码已修改！');else alert('修改失败');document.getElementById('newPassword').value='';}
+  catch(e){alert(sanitizeError(e));}
 }
 
-async function sbPost(table, data) {
-  var resp = await fetch(SB_URL + '/rest/v1/' + table, {
-    method: 'POST', headers: sbHeaders(), body: JSON.stringify(data)
-  });
-  if (!resp.ok) throw new Error(await resp.text());
-  return resp.json();
+async function checkSession(){
+  var tok=getToken();if(!tok){document.getElementById('loginOverlay').style.display='flex';return;}
+  try{await callRpc('api_scripts_list',{tok:tok});await onAuthSuccess();}catch(e){forceLogout();}
 }
 
-async function sbPatch(table, id, data) {
-  var resp = await fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + id, {
-    method: 'PATCH', headers: sbHeaders(), body: JSON.stringify(data)
-  });
-  if (!resp.ok) throw new Error(await resp.text());
+async function onAuthSuccess(){
+  loggedIn=true;document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('statusBar').style.display='flex';
+  document.getElementById('topNav').style.display='flex';
+  document.getElementById('bottomNav').style.display='flex';
+  await loadAllData();initApp();
 }
 
-async function sbDelete(table, id) {
-  var resp = await fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + id, {
-    method: 'DELETE', headers: sbHeaders()
-  });
-  if (!resp.ok) throw new Error(await resp.text());
-}
-
-// RPC calls (for auth functions)
-async function sbRpc(fnName, params) {
-  var resp = await fetch(SB_URL + '/rest/v1/rpc/' + fnName, {
-    method: 'POST', headers: sbHeaders(), body: JSON.stringify(params)
-  });
-  if (!resp.ok) throw new Error(await resp.text());
-  return resp.json();
-}
-
-// ==================== STATE ====================
-var loggedIn = false;
-var D = {scripts:[], lighting:[], streamers:[], recaps:[], workLogs:{}};
-var LOGIN_COOLDOWN = 0;
-
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('loginError').textContent = '⏳ 连接中...';
-  checkSession();
-});
-
-// ==================== AUTH ====================
-async function doLogin() {
-  if (LOGIN_COOLDOWN > Date.now()) {
-    document.getElementById('loginError').textContent = '⏳ 请稍等几秒再试';
-    return;
-  }
-  var pw = document.getElementById('loginPassword').value;
-  if (!pw) return;
-  document.getElementById('loginError').textContent = '⏳ 验证中...';
-  try {
-    var token = await sbRpc('login', { password_text: pw });
-    if (!token) {
-      LOGIN_COOLDOWN = Date.now() + 3000;
-      document.getElementById('loginError').textContent = '❌ 密码错误';
-      return;
-    }
-    sessionStorage.setItem('liveops_token', token);
-    LOGIN_COOLDOWN = 0;
-    await onAuthSuccess();
-  } catch (e) {
-    LOGIN_COOLDOWN = Date.now() + 5000;
-    document.getElementById('loginError').textContent = sanitizeError(e);
-  }
-}
-
-function forceLogout() {
-  sessionStorage.removeItem('liveops_token');
-  loggedIn = false;
-  document.getElementById('loginOverlay').style.display = 'flex';
-  document.getElementById('statusBar').style.display = 'none';
-  document.getElementById('topNav').style.display = 'none';
-  document.getElementById('bottomNav').style.display = 'none';
-  document.getElementById('loginError').textContent = '会话已过期，请重新登录';
-}
-
-async function logout() {
-  try {
-    if (getToken()) await sbRpc('logout_fn', {});
-  } catch (e) { /* best effort */ }
-  sessionStorage.removeItem('liveops_token');
-  location.reload();
-}
-
-async function changePassword() {
-  var np = document.getElementById('newPassword').value.trim();
-  if (!np) return alert('请输入新密码');
-  if (np.length < 4) return alert('密码至少4位');
-  try {
-    var ok = await sbRpc('change_pw', { new_password: np });
-    if (ok) {
-      alert('✅ 密码已修改！');
-      document.getElementById('newPassword').value = '';
-    } else {
-      alert('修改失败：请确认已登录');
-    }
-  } catch (e) {
-    alert(sanitizeError(e));
-  }
-}
-
-async function checkSession() {
-  var token = getToken();
-  if (!token) {
-    document.getElementById('loginOverlay').style.display = 'flex';
-    return;
-  }
-  // Verify token is still valid by making a light request
-  try {
-    var test = await sbGet('scripts', 'limit=1');
-    // Token valid
-    await onAuthSuccess();
-  } catch (e) {
-    forceLogout();
-  }
-}
-
-async function onAuthSuccess() {
-  loggedIn = true;
-  document.getElementById('loginOverlay').style.display = 'none';
-  document.getElementById('statusBar').style.display = 'flex';
-  document.getElementById('topNav').style.display = 'flex';
-  document.getElementById('bottomNav').style.display = 'flex';
-  await loadAllData();
-  initApp();
-}
-
-// ==================== DATA SYNC ====================
-async function loadAllData() {
-  document.getElementById('syncStatus').textContent = '同步中...';
-  try {
-    var results = await Promise.all([
-      sbGet('scripts', 'select=*&order=id.asc'),
-      sbGet('lighting', 'select=*&order=id.asc'),
-      sbGet('streamers', 'select=*&order=id.asc'),
-      sbGet('recaps', 'select=*&order=date.desc'),
-      sbGet('work_logs', 'select=*&order=date.desc,time.asc')
+async function loadAllData(){
+  document.getElementById('syncStatus').textContent='同步中...';
+  var tok=getToken();
+  try{
+    var r=await Promise.all([
+      callRpc('api_scripts_list',{tok:tok}),
+      callRpc('api_lighting_list',{tok:tok}),
+      callRpc('api_streamers_list',{tok:tok}),
+      callRpc('api_recaps_list',{tok:tok}),
+      callRpc('api_work_logs_list',{tok:tok})
     ]);
-    D.scripts   = results[0] || [];
-    D.lighting  = results[1] || [];
-    D.streamers = results[2] || [];
-    D.recaps    = results[3] || [];
-    D.workLogs  = {};
-    (results[4] || []).forEach(function(l) {
-      if (!D.workLogs[l.date]) D.workLogs[l.date] = [];
-      D.workLogs[l.date].push(l);
-    });
-    document.getElementById('syncDot').className = 'dot online';
-    document.getElementById('syncStatus').textContent = '已同步';
-  } catch (e) {
-    document.getElementById('syncDot').className = 'dot offline';
-    document.getElementById('syncStatus').textContent = '离线: ' + escapeHtml(e.message);
+    D.scripts=r[0]||[];D.lighting=r[1]||[];D.streamers=r[2]||[];D.recaps=r[3]||[];
+    D.workLogs={};(r[4]||[]).forEach(function(l){if(!D.workLogs[l.date])D.workLogs[l.date]=[];D.workLogs[l.date].push(l);});
+    document.getElementById('syncDot').className='dot online';document.getElementById('syncStatus').textContent='已同步';
+  }catch(e){
+    document.getElementById('syncDot').className='dot offline';document.getElementById('syncStatus').textContent='离线: '+escapeHtml(e.message);
   }
 }
 
-async function syncNow() {
-  document.getElementById('syncStatus').textContent = '同步中...';
-  await loadAllData();
+var currentPage='scripts';
+function switchPage(name){
+  currentPage=name;if(!loggedIn)return;
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.top-nav button,.bottom-nav button').forEach(function(b){b.classList.remove('active');});
+  var pg=document.getElementById('page-'+name);if(pg)pg.classList.add('active');
+  document.querySelectorAll('[data-page="'+name+'"]').forEach(function(b){b.classList.add('active');});
   renderPage();
 }
+function renderPage(){if(currentPage==='scripts')renderScripts();if(currentPage==='lighting')renderLights();if(currentPage==='streamers')renderStreamers();if(currentPage==='recap')initRecap();if(currentPage==='worklog')renderWorkLog();}
 
-// ==================== NAV ====================
-var currentPage = 'scripts';
-function switchPage(name) {
-  currentPage = name;
-  if (!loggedIn) return;
-  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-  document.querySelectorAll('.top-nav button,.bottom-nav button').forEach(function(b) { b.classList.remove('active'); });
-  var pg = document.getElementById('page-' + name); if (pg) pg.classList.add('active');
-  document.querySelectorAll('[data-page="' + name + '"]').forEach(function(b) { b.classList.add('active'); });
-  renderPage();
-}
-function renderPage() {
-  if (currentPage === 'scripts')   renderScripts();
-  if (currentPage === 'lighting')  renderLights();
-  if (currentPage === 'streamers') renderStreamers();
-  if (currentPage === 'recap')     initRecap();
-  if (currentPage === 'worklog')   renderWorkLog();
-}
+document.getElementById('topNav').addEventListener('click',function(e){if(e.target.dataset.page)switchPage(e.target.dataset.page);});
+document.getElementById('bottomNav').addEventListener('click',function(e){var b=e.target.closest('button');if(b&&b.dataset.page)switchPage(b.dataset.page);});
 
-document.getElementById('topNav').addEventListener('click', function(e) {
-  if (e.target.dataset.page) switchPage(e.target.dataset.page);
-});
-document.getElementById('bottomNav').addEventListener('click', function(e) {
-  var b = e.target.closest('button');
-  if (b && b.dataset.page) switchPage(b.dataset.page);
-});
+// SCRIPTS
+var scriptCat='全部',SCRIPT_CATS=['全部','开场','感谢','PK','拉票','下播','大哥','日常'];
+function renderScripts(){
+  document.getElementById('scriptCatTags').innerHTML=SCRIPT_CATS.map(function(c){return'<button class="'+(c===scriptCat?'active':'')+'" onclick="scriptCat=\''+escapeHtml(c)+'\';renderScripts()">'+escapeHtml(c)+'</button>';}).join('');
+  document.getElementById('newScriptCat').innerHTML=SCRIPT_CATS.filter(function(c){return c!=='全部';}).map(function(c){return'<option>'+escapeHtml(c)+'</option>';}).join('');
+  var q=(document.getElementById('scriptSearch').value||'').toLowerCase(),list=D.scripts;
+  if(scriptCat!=='全部')list=list.filter(function(s){return s.cat===scriptCat;});
+  if(q)list=list.filter(function(s){return(s.title||'').toLowerCase().indexOf(q)!==-1||(s.body||'').toLowerCase().indexOf(q)!==-1;});
+  document.getElementById('scriptList').innerHTML=list.map(function(s){return'<div class="script-card"><div class="sc-title">'+escapeHtml(s.title)+'<span class="chip chip-red">'+escapeHtml(s.cat)+'</span></div><div class="sc-body">'+escapeHtml(s.body)+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="copyScript('+s.id+')">📋 复制</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteScript('+s.id+')">删除</button></div></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无话术</p>';
+}
+function toggleAddScript(){var e=document.getElementById('addScriptForm');e.style.display=e.style.display==='none'?'block':'none';}
+async function addScript(){
+  var cat=document.getElementById('newScriptCat').value,title=document.getElementById('newScriptTitle').value.trim(),body=document.getElementById('newScriptBody').value.trim();
+  if(!title||!body)return alert('请填写完整');
+  try{await callRpc('api_scripts_add',{tok:getToken(),cat_:cat,title_:title,body_:body});}catch(e){return alert(sanitizeError(e));}
+  document.getElementById('newScriptTitle').value='';document.getElementById('newScriptBody').value='';document.getElementById('addScriptForm').style.display='none';
+  await loadAllData();renderScripts();
+}
+async function deleteScript(id){if(!confirm('删除？'))return;try{await callRpc('api_scripts_del',{tok:getToken(),id_:id});await loadAllData();renderScripts();}catch(e){alert(sanitizeError(e));}}
+function copyScript(id){var s=D.scripts.find(function(x){return x.id===id;});if(s)navigator.clipboard.writeText(s.body).then(function(){alert('✅ 已复制');});}
 
-// ==================== SCRIPTS ====================
-var scriptCat = '全部';
-var SCRIPT_CATS = ['全部','开场','感谢','PK','拉票','下播','大哥','日常'];
-function renderScripts() {
-  document.getElementById('scriptCatTags').innerHTML = SCRIPT_CATS.map(function(c) {
-    return '<button class="' + (c === scriptCat ? 'active' : '') + '" onclick="scriptCat=\'' + escapeHtml(c) + '\';renderScripts()">' + escapeHtml(c) + '</button>';
-  }).join('');
-  document.getElementById('newScriptCat').innerHTML = SCRIPT_CATS.filter(function(c) { return c !== '全部'; }).map(function(c) {
-    return '<option>' + escapeHtml(c) + '</option>';
-  }).join('');
-  var q = (document.getElementById('scriptSearch').value || '').toLowerCase();
-  var list = D.scripts;
-  if (scriptCat !== '全部') list = list.filter(function(s) { return s.cat === scriptCat; });
-  if (q) list = list.filter(function(s) {
-    return (s.title || '').toLowerCase().indexOf(q) !== -1 || (s.body || '').toLowerCase().indexOf(q) !== -1;
-  });
-  document.getElementById('scriptList').innerHTML = list.map(function(s) {
-    return '<div class="script-card">'
-      + '<div class="sc-title">' + escapeHtml(s.title) + '<span class="chip chip-red">' + escapeHtml(s.cat) + '</span></div>'
-      + '<div class="sc-body">' + escapeHtml(s.body) + '</div>'
-      + '<div class="sc-actions">'
-      + '<button class="btn btn-outline btn-sm" onclick="copyScript(' + s.id + ')">📋 复制</button>'
-      + '<button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteScript(' + s.id + ')">删除</button>'
-      + '</div></div>';
-  }).join('') || '<p style="text-align:center;color:var(--text2);padding:20px">暂无话术</p>';
+// LIGHTING
+function renderLights(){
+  document.getElementById('lightList').innerHTML=D.lighting.map(function(l){return'<div class="light-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong>'+escapeHtml(l.name)+'</strong><span class="chip chip-blue">'+escapeHtml(l.style||'')+'</span></div><div style="font-size:13px;color:var(--text2);line-height:1.6">🔆'+escapeHtml(l.main||'')+' 💡'+escapeHtml(l.fill||'')+' 🔦'+escapeHtml(l.rim||'')+' ✨'+escapeHtml(l.beauty||'')+(l.note?' 📝'+escapeHtml(l.note):'')+'</div><button class="btn btn-outline btn-sm" onclick="deleteLight('+l.id+')" style="margin-top:8px">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无方案</p>';
 }
-function toggleAddScript() {
-  var el = document.getElementById('addScriptForm');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+function toggleAddLight(){var e=document.getElementById('addLightForm');e.style.display=e.style.display==='none'?'block':'none';}
+async function addLight(){
+  var item={tok:getToken(),name_:document.getElementById('newLightName').value.trim(),style_:document.getElementById('newLightStyle').value.trim(),main_:document.getElementById('newLightMain').value.trim(),fill_:document.getElementById('newLightFill').value.trim(),rim_:document.getElementById('newLightRim').value.trim(),beauty_:document.getElementById('newLightBeauty').value.trim(),note_:document.getElementById('newLightNote').value.trim()};
+  if(!item.name_)return alert('请填写方案名称');
+  try{await callRpc('api_lighting_add',item);}catch(e){return alert(sanitizeError(e));}
+  ['newLightName','newLightStyle','newLightMain','newLightFill','newLightRim','newLightBeauty','newLightNote'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('addLightForm').style.display='none';await loadAllData();renderLights();
 }
-async function addScript() {
-  var cat   = document.getElementById('newScriptCat').value;
-  var title = document.getElementById('newScriptTitle').value.trim();
-  var body  = document.getElementById('newScriptBody').value.trim();
-  if (!title || !body) return alert('请填写完整');
-  try { await sbPost('scripts', {cat:cat, title:title, body:body}); }
-  catch(e) { return alert(sanitizeError(e)); }
-  document.getElementById('newScriptTitle').value = '';
-  document.getElementById('newScriptBody').value = '';
-  document.getElementById('addScriptForm').style.display = 'none';
-  await loadAllData(); renderScripts();
-}
-async function deleteScript(id) {
-  if (!confirm('删除？')) return;
-  try { await sbDelete('scripts', id); await loadAllData(); renderScripts(); }
-  catch(e) { alert(sanitizeError(e)); }
-}
-function copyScript(id) {
-  var s = D.scripts.find(function(x) { return x.id === id; });
-  if (s) navigator.clipboard.writeText(s.body).then(function() { alert('✅ 已复制'); });
-}
+async function deleteLight(id){if(!confirm('删除？'))return;try{await callRpc('api_lighting_del',{tok:getToken(),id_:id});await loadAllData();renderLights();}catch(e){alert(sanitizeError(e));}}
 
-// ==================== LIGHTING ====================
-function renderLights() {
-  document.getElementById('lightList').innerHTML = D.lighting.map(function(l) {
-    return '<div class="light-card">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong>' + escapeHtml(l.name) + '</strong><span class="chip chip-blue">' + escapeHtml(l.style || '') + '</span></div>'
-      + '<div style="font-size:13px;color:var(--text2);line-height:1.6">🔆' + escapeHtml(l.main || '') + ' 💡' + escapeHtml(l.fill || '') + ' 🔦' + escapeHtml(l.rim || '') + ' ✨' + escapeHtml(l.beauty || '') + (l.note ? ' 📝' + escapeHtml(l.note) : '') + '</div>'
-      + '<button class="btn btn-outline btn-sm" onclick="deleteLight(' + l.id + ')" style="margin-top:8px">删除</button></div>';
-  }).join('') || '<p style="text-align:center;color:var(--text2);padding:20px">暂无方案</p>';
+// STREAMERS
+function renderStreamers(){
+  document.getElementById('recapStreamer').innerHTML='<option value="">选择主播</option>'+D.streamers.map(function(s){return'<option value="'+escapeHtml(s.name)+'">'+escapeHtml(s.name)+'</option>';}).join('');
+  document.getElementById('streamerList').innerHTML=D.streamers.map(function(s){return'<div class="streamer-card"><div style="display:flex;justify-content:space-between"><strong>'+escapeHtml(s.name)+'</strong><span class="chip chip-green">'+escapeHtml(s.platform||'')+'</span></div><div style="font-size:13px;color:var(--text2);margin-top:4px">'+escapeHtml(s.note||'')+' · '+escapeHtml(s.start_date||'')+'</div><button class="btn btn-outline btn-sm" onclick="deleteStreamer('+s.id+')" style="margin-top:8px">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无主播</p>';
 }
-function toggleAddLight() {
-  var el = document.getElementById('addLightForm');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+function toggleAddStreamer(){var e=document.getElementById('addStreamerForm');e.style.display=e.style.display==='none'?'block':'none';}
+async function addStreamer(){
+  var name=document.getElementById('newStreamerName').value.trim(),platform=document.getElementById('newStreamerPlatform').value,note=document.getElementById('newStreamerNote').value.trim();
+  if(!name)return alert('请填写主播昵称');
+  try{await callRpc('api_streamers_add',{tok:getToken(),name_:name,platform_:platform,note_:note});}catch(e){return alert(sanitizeError(e));}
+  ['newStreamerName','newStreamerNote'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('addStreamerForm').style.display='none';await loadAllData();renderStreamers();
 }
-async function addLight() {
-  var item = {
-    name:   document.getElementById('newLightName').value.trim(),
-    style:  document.getElementById('newLightStyle').value.trim(),
-    main:   document.getElementById('newLightMain').value.trim(),
-    fill:   document.getElementById('newLightFill').value.trim(),
-    rim:    document.getElementById('newLightRim').value.trim(),
-    beauty: document.getElementById('newLightBeauty').value.trim(),
-    note:   document.getElementById('newLightNote').value.trim()
-  };
-  if (!item.name) return alert('请填写方案名称');
-  try { await sbPost('lighting', item); }
-  catch(e) { return alert(sanitizeError(e)); }
-  ['newLightName','newLightStyle','newLightMain','newLightFill','newLightRim','newLightBeauty','newLightNote'].forEach(function(id) {
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('addLightForm').style.display = 'none';
-  await loadAllData(); renderLights();
-}
-async function deleteLight(id) {
-  if (!confirm('删除？')) return;
-  try { await sbDelete('lighting', id); await loadAllData(); renderLights(); }
-  catch(e) { alert(sanitizeError(e)); }
-}
+async function deleteStreamer(id){if(!confirm('删除？'))return;try{await callRpc('api_streamers_del',{tok:getToken(),id_:id});await loadAllData();renderStreamers();}catch(e){alert(sanitizeError(e));}}
 
-// ==================== STREAMERS ====================
-function renderStreamers() {
-  document.getElementById('recapStreamer').innerHTML = '<option value="">选择主播</option>'
-    + D.streamers.map(function(s) { return '<option value="' + escapeHtml(s.name) + '">' + escapeHtml(s.name) + '</option>'; }).join('');
-  document.getElementById('streamerList').innerHTML = D.streamers.map(function(s) {
-    return '<div class="streamer-card">'
-      + '<div style="display:flex;justify-content:space-between"><strong>' + escapeHtml(s.name) + '</strong><span class="chip chip-green">' + escapeHtml(s.platform || '') + '</span></div>'
-      + '<div style="font-size:13px;color:var(--text2);margin-top:4px">' + escapeHtml(s.note || '') + ' · ' + escapeHtml(s.start_date || '') + '</div>'
-      + '<button class="btn btn-outline btn-sm" onclick="deleteStreamer(' + s.id + ')" style="margin-top:8px">删除</button></div>';
-  }).join('') || '<p style="text-align:center;color:var(--text2);padding:20px">暂无主播</p>';
+// RECAP
+var recapChart=null,generatedReviewText='';
+function initRecap(){
+  document.getElementById('recapDate').value=today();
+  ['apiKey'].forEach(function(id){document.getElementById(id).value=getApiKey();});
+  document.getElementById('aiModel').value=getAiModel();document.getElementById('customEndpoint').value=getCustomEp();document.getElementById('customModel').value=getCustomModel();
+  onAiModelChange();renderStreamers();renderHourlyGrid();renderRecapHistory();renderRecapChart();document.getElementById('generatedReviewCard').style.display='none';
 }
-function toggleAddStreamer() {
-  var el = document.getElementById('addStreamerForm');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+function onRecapChange(){initRecap();}
+function renderHourlyGrid(){document.getElementById('hourlyGrid').innerHTML=Array.from({length:24},function(_,i){return'<div class="hourly-item"><label>'+i+':00</label><input type="number" id="hv_'+i+'" min="0"></div>';}).join('');}
+function addKeyMoment(){var d=document.createElement('div');d.className='form-row';d.style.marginBottom='4px';d.innerHTML='<div class="form-group"><input type="time" class="km-time"></div><div class="form-group"><input type="text" class="km-event" placeholder="发生了什么"></div>';document.getElementById('keyMoments').appendChild(d);}
+function getKeyMoments(){var ts=document.querySelectorAll('.km-time'),es=document.querySelectorAll('.km-event'),r=[];for(var i=0;i<ts.length;i++){if(ts[i].value&&es[i].value)r.push({time:ts[i].value,event:es[i].value.trim()});}return r;}
+function getRecapData(){var h={};for(var i=0;i<24;i++){var v=+document.getElementById('hv_'+i).value;if(v)h[i]=v;}return{date:document.getElementById('recapDate').value,streamer:document.getElementById('recapStreamer').value,views:+document.getElementById('recapViews').value||0,peak:+document.getElementById('recapPeak').value||0,stay:+document.getElementById('recapStay').value||0,fans:+document.getElementById('recapFans').value||0,income:+document.getElementById('recapIncome').value||0,payers:+document.getElementById('recapPayers').value||0,big_gift:+document.getElementById('recapBigGift').value||0,big_gift_amt:+document.getElementById('recapBigGiftAmt').value||0,pk_count:+document.getElementById('recapPKCount').value||0,pk_win:+document.getElementById('recapPKWin').value||0,hourly:h,peak_time:document.getElementById('recapPeakTime').value,low_time:document.getElementById('recapLowTime').value,key_moments:getKeyMoments()};}
+function pct(a,b){if(!b)return'--';var v=(a-b)/b*100;return(v>=0?'+':'')+v.toFixed(1)+'%';}
+function findPrev(sn,date){var d=new Date(date);d.setDate(d.getDate()-1);var ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return D.recaps.find(function(r){return r.streamer===sn&&r.date===ds;})||null;}
+function autoFillYesterday(){
+  var yd=new Date();yd.setDate(yd.getDate()-1);var ds=yd.getFullYear()+'-'+String(yd.getMonth()+1).padStart(2,'0')+'-'+String(yd.getDate()).padStart(2,'0'),sn=document.getElementById('recapStreamer').value,prev=D.recaps.filter(function(r){return r.date===ds&&r.streamer===sn;})[0];
+  if(!prev)return alert('没有昨天的数据');
+  ['views','peak','stay','fans','income','payers','big_gift','big_gift_amt','pk_count','pk_win'].forEach(function(k){var el=document.getElementById('recap'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.value=prev[k]||'';});
+  for(var i=0;i<24;i++){var el=document.getElementById('hv_'+i);if(el&&prev.hourly&&prev.hourly[i])el.value=prev.hourly[i];}
+  if(prev.peak_time)document.getElementById('recapPeakTime').value=prev.peak_time;if(prev.low_time)document.getElementById('recapLowTime').value=prev.low_time;
 }
-async function addStreamer() {
-  var s = {
-    name:     document.getElementById('newStreamerName').value.trim(),
-    platform: document.getElementById('newStreamerPlatform').value,
-    note:     document.getElementById('newStreamerNote').value.trim(),
-    start_date: today()
-  };
-  if (!s.name) return alert('请填写主播昵称');
-  try { await sbPost('streamers', s); }
-  catch(e) { return alert(sanitizeError(e)); }
-  ['newStreamerName','newStreamerNote'].forEach(function(id) { document.getElementById(id).value = ''; });
-  document.getElementById('addStreamerForm').style.display = 'none';
-  await loadAllData(); renderStreamers();
-}
-async function deleteStreamer(id) {
-  if (!confirm('删除？')) return;
-  try { await sbDelete('streamers', id); await loadAllData(); renderStreamers(); }
-  catch(e) { alert(sanitizeError(e)); }
-}
+function getApiKey(){return localStorage.getItem('liveops_apikey')||'';}
+function getAiModel(){return localStorage.getItem('liveops_aimodel')||'claude';}
+function getCustomEp(){return localStorage.getItem('liveops_custom_ep')||'';}
+function getCustomModel(){return localStorage.getItem('liveops_custom_model')||'';}
+function saveApiKey(){var k=document.getElementById('apiKey').value.trim(),m=document.getElementById('aiModel').value;localStorage.setItem('liveops_apikey',k);localStorage.setItem('liveops_aimodel',m);if(m==='custom'){localStorage.setItem('liveops_custom_ep',document.getElementById('customEndpoint').value.trim());localStorage.setItem('liveops_custom_model',document.getElementById('customModel').value.trim());}alert(k?'✅ 已保存':'✅ 已清除');}
+function onAiModelChange(){document.getElementById('customEndpointRow').style.display=document.getElementById('aiModel').value==='custom'?'block':'none';}
 
-// ==================== RECAP ====================
-var recapChart = null, generatedReviewText = '';
-function initRecap() {
-  document.getElementById('recapDate').value = today();
-  ['apiKey'].forEach(function(id) { document.getElementById(id).value = getApiKey(); });
-  document.getElementById('aiModel').value = getAiModel();
-  document.getElementById('customEndpoint').value = getCustomEp();
-  document.getElementById('customModel').value = getCustomModel();
-  onAiModelChange();
-  renderStreamers();
-  renderHourlyGrid();
-  renderRecapHistory();
-  renderRecapChart();
-  document.getElementById('generatedReviewCard').style.display = 'none';
+async function generateReview(){
+  var r=getRecapData();if(!r.streamer)return alert('请选择主播');
+  document.getElementById('generatedReviewCard').style.display='block';
+  var key=getApiKey();
+  if(key){document.getElementById('generatedReview').textContent='⏳ AI 生成中...';try{generatedReviewText=await callAI(key,getAiModel(),r);}catch(e){generatedReviewText='❌ AI失败（'+escapeHtml(e.message)+'）\n\n'+ruleBasedReview(r);}}
+  else{generatedReviewText=ruleBasedReview(r);}
+  document.getElementById('generatedReview').textContent=generatedReviewText;window._lastRecapData=r;
+  window.scrollTo({top:document.getElementById('generatedReviewCard').offsetTop-20,behavior:'smooth'});
 }
-function onRecapChange() { initRecap(); }
-function renderHourlyGrid() {
-  document.getElementById('hourlyGrid').innerHTML = Array.from({length:24}, function(_, i) {
-    return '<div class="hourly-item"><label>' + i + ':00</label><input type="number" id="hv_' + i + '" min="0"></div>';
-  }).join('');
+async function callAI(apiKey,model,r){
+  var prev=findPrev(r.streamer,r.date);
+  var prompt='直播数据：'+JSON.stringify({streamer:r.streamer,date:r.date,views:r.views,peak:r.peak,stay:r.stay,fans:r.fans,income:r.income,payers:r.payers,bigGift:r.big_gift,bigGiftAmt:r.big_gift_amt,pkCount:r.pk_count,pkWin:r.pk_win,yesterday:prev||null});
+  var url,headers,body;
+  if(model==='claude'){url='https://api.anthropic.com/v1/messages';headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};body=JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,system:'你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。',messages:[{role:'user',content:prompt}]});}
+  else if(model==='deepseek'){url='https://api.deepseek.com/v1/chat/completions';headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:'deepseek-chat',max_tokens:800,messages:[{role:'system',content:'你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。'},{role:'user',content:prompt}]});}
+  else if(model==='openai'){url='https://api.openai.com/v1/chat/completions';headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:'gpt-4o-mini',max_tokens:800,messages:[{role:'system',content:'你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。'},{role:'user',content:prompt}]});}
+  else{url=getCustomEp();headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:getCustomModel()||'gpt-4o-mini',max_tokens:800,messages:[{role:'system',content:'你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。'},{role:'user',content:prompt}]});}
+  var resp=await fetch(url,{method:'POST',headers:headers,body:body});if(!resp.ok){var err=await resp.text();throw new Error(err.slice(0,150));}
+  var d=await resp.json();var t=model==='claude'?d.content[0].text:d.choices[0].message.content;return t+'\n\n───\n🤖'+model.toUpperCase();
 }
-function addKeyMoment() {
-  var div = document.createElement('div');
-  div.className = 'form-row';
-  div.style.marginBottom = '4px';
-  div.innerHTML = '<div class="form-group"><input type="time" class="km-time"></div><div class="form-group"><input type="text" class="km-event" placeholder="发生了什么"></div>';
-  document.getElementById('keyMoments').appendChild(div);
+function ruleBasedReview(r){
+  var prev=findPrev(r.streamer,r.date),rep='📊 '+escapeHtml(r.streamer)+' · '+escapeHtml(r.date)+' 复盘\n'+'─'.repeat(40)+'\n\n📈 数据\n场观'+r.views+(prev?'('+pct(r.views,prev.views)+')':'')+' 峰值'+r.peak+'人 停留'+r.stay+'s 粉'+r.fans+' 收入¥'+r.income+' 付费'+r.payers+'人';
+  if(r.big_gift)rep+=' 大礼'+r.big_gift+'个/¥'+r.big_gift_amt;if(r.pk_count)rep+=' PK'+r.pk_count+'场赢'+r.pk_win;
+  var hl=[],is=[];if(prev){if(r.income>prev.income*1.2)hl.push('收入大涨'+pct(r.income,prev.income));if(r.income<prev.income*.8)is.push('收入下滑'+pct(r.income,prev.income));if(r.stay>prev.stay*1.1)hl.push('停留提升');if(r.stay<prev.stay*.9)is.push('停留下降');}
+  if(hl.length)rep+='\n\n🌟亮点\n'+hl.map(function(h){return'✅'+h;}).join('\n');
+  if(is.length)rep+='\n\n⚠️待改进\n'+is.map(function(i){return'❌'+i;}).join('\n');
+  return rep+'\n\n💡建议：保持灯光质量，准备互动话题，主动引导礼物。\n'+'─'.repeat(40)+'\n📝补充笔记：\n（手动填写...）';
 }
-function getKeyMoments() {
-  var ts = document.querySelectorAll('.km-time'), es = document.querySelectorAll('.km-event'), r = [];
-  for (var i = 0; i < ts.length; i++) {
-    if (ts[i].value && es[i].value) r.push({time: ts[i].value, event: es[i].value.trim()});
-  }
-  return r;
+function copyReview(){navigator.clipboard.writeText(generatedReviewText).then(function(){alert('✅ 已复制');});}
+async function saveRecap(){
+  var r=window._lastRecapData||getRecapData();if(!r.streamer)return alert('请选择主播');
+  try{await callRpc('api_recaps_save',{tok:getToken(),data_:r});}catch(e){return alert(sanitizeError(e));}
+  await loadAllData();renderRecapHistory();renderRecapChart();alert('✅ 已保存');
 }
-function getRecapData() {
-  var h = {};
-  for (var i = 0; i < 24; i++) {
-    var v = +document.getElementById('hv_' + i).value;
-    if (v) h[i] = v;
-  }
-  return {
-    date: document.getElementById('recapDate').value,
-    streamer: document.getElementById('recapStreamer').value,
-    views: +document.getElementById('recapViews').value || 0,
-    peak: +document.getElementById('recapPeak').value || 0,
-    stay: +document.getElementById('recapStay').value || 0,
-    fans: +document.getElementById('recapFans').value || 0,
-    income: +document.getElementById('recapIncome').value || 0,
-    payers: +document.getElementById('recapPayers').value || 0,
-    big_gift: +document.getElementById('recapBigGift').value || 0,
-    big_gift_amt: +document.getElementById('recapBigGiftAmt').value || 0,
-    pk_count: +document.getElementById('recapPKCount').value || 0,
-    pk_win: +document.getElementById('recapPKWin').value || 0,
-    hourly: h,
-    peak_time: document.getElementById('recapPeakTime').value,
-    low_time: document.getElementById('recapLowTime').value,
-    key_moments: getKeyMoments()
-  };
+function renderRecapHistory(){
+  var sn=document.getElementById('recapStreamer').value,list=sn?D.recaps.filter(function(r){return r.streamer===sn;}):D.recaps;
+  document.getElementById('recapHistory').innerHTML=list.slice(0,30).map(function(r){return'<div class="script-card" style="cursor:pointer" onclick="loadRecap(\''+r.id+'\')"><div style="display:flex;justify-content:space-between"><strong>'+escapeHtml(r.date)+'·'+escapeHtml(r.streamer)+'</strong><span>💰'+r.income+'元👥'+r.views+'</span></div></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
 }
-
-function pct(a,b) { if (!b) return '--'; var v = (a-b)/b*100; return (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; }
-function findPrev(sn, date) {
-  var d = new Date(date); d.setDate(d.getDate() - 1);
-  var ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  return D.recaps.find(function(r) { return r.streamer === sn && r.date === ds; }) || null;
-}
-
-function autoFillYesterday() {
-  var yd = new Date(); yd.setDate(yd.getDate() - 1);
-  var ds = yd.getFullYear() + '-' + String(yd.getMonth()+1).padStart(2,'0') + '-' + String(yd.getDate()).padStart(2,'0');
-  var sn = document.getElementById('recapStreamer').value;
-  var prev = D.recaps.filter(function(r) { return r.date === ds && r.streamer === sn; })[0];
-  if (!prev) return alert('没有昨天的数据');
-  ['views','peak','stay','fans','income','payers','big_gift','big_gift_amt','pk_count','pk_win'].forEach(function(k) {
-    var el = document.getElementById('recap' + k.charAt(0).toUpperCase() + k.slice(1)); if (el) el.value = prev[k] || '';
-  });
-  for (var i = 0; i < 24; i++) {
-    var el = document.getElementById('hv_' + i); if (el && prev.hourly && prev.hourly[i]) el.value = prev.hourly[i];
-  }
-  if (prev.peak_time) document.getElementById('recapPeakTime').value = prev.peak_time;
-  if (prev.low_time)  document.getElementById('recapLowTime').value  = prev.low_time;
-}
-
-// AI functions
-function getApiKey()     { return localStorage.getItem('liveops_apikey') || ''; }
-function getAiModel()    { return localStorage.getItem('liveops_aimodel') || 'claude'; }
-function getCustomEp()   { return localStorage.getItem('liveops_custom_ep') || ''; }
-function getCustomModel(){ return localStorage.getItem('liveops_custom_model') || ''; }
-function saveApiKey() {
-  var k = document.getElementById('apiKey').value.trim();
-  var m = document.getElementById('aiModel').value;
-  localStorage.setItem('liveops_apikey', k);
-  localStorage.setItem('liveops_aimodel', m);
-  if (m === 'custom') {
-    localStorage.setItem('liveops_custom_ep', document.getElementById('customEndpoint').value.trim());
-    localStorage.setItem('liveops_custom_model', document.getElementById('customModel').value.trim());
-  }
-  alert(k ? '✅ 已保存' : '✅ 已清除');
-}
-function onAiModelChange() {
-  document.getElementById('customEndpointRow').style.display = document.getElementById('aiModel').value === 'custom' ? 'block' : 'none';
-}
-
-async function generateReview() {
-  var r = getRecapData(); if (!r.streamer) return alert('请选择主播');
-  var key = getApiKey();
-  document.getElementById('generatedReviewCard').style.display = 'block';
-  if (key) {
-    document.getElementById('generatedReview').textContent = '⏳ AI 生成中...';
-    try {
-      generatedReviewText = await callAI(key, getAiModel(), r);
-    } catch (e) {
-      generatedReviewText = '❌ AI失败（' + escapeHtml(e.message) + '）\n\n' + ruleBasedReview(r);
-    }
-  } else {
-    generatedReviewText = ruleBasedReview(r);
-  }
-  document.getElementById('generatedReview').textContent = generatedReviewText;
-  window._lastRecapData = r;
-  window.scrollTo({top: document.getElementById('generatedReviewCard').offsetTop - 20, behavior: 'smooth'});
-}
-
-async function callAI(apiKey, model, r) {
-  var prev = findPrev(r.streamer, r.date);
-  var sysPrompt = '你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。';
-  var prompt = '直播数据：' + JSON.stringify(Object.assign({}, r, {yesterday: prev || null}));
-  var url, headers, body;
-  if (model === 'claude') {
-    url = 'https://api.anthropic.com/v1/messages';
-    headers = {'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};
-    body = JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,system:sysPrompt,messages:[{role:'user',content:prompt}]});
-  } else if (model === 'deepseek') {
-    url = 'https://api.deepseek.com/v1/chat/completions';
-    headers = {'Content-Type':'application/json','Authorization':'Bearer '+apiKey};
-    body = JSON.stringify({model:'deepseek-chat',max_tokens:800,messages:[{role:'system',content:sysPrompt},{role:'user',content:prompt}]});
-  } else if (model === 'openai') {
-    url = 'https://api.openai.com/v1/chat/completions';
-    headers = {'Content-Type':'application/json','Authorization':'Bearer '+apiKey};
-    body = JSON.stringify({model:'gpt-4o-mini',max_tokens:800,messages:[{role:'system',content:sysPrompt},{role:'user',content:prompt}]});
-  } else {
-    url = getCustomEp();
-    headers = {'Content-Type':'application/json','Authorization':'Bearer '+apiKey};
-    body = JSON.stringify({model:getCustomModel()||'gpt-4o-mini',max_tokens:800,messages:[{role:'system',content:sysPrompt},{role:'user',content:prompt}]});
-  }
-  var resp = await fetch(url, {method:'POST',headers:headers,body:body});
-  if (!resp.ok) { var errText = await resp.text(); throw new Error(errText.slice(0, 150)); }
-  var d = await resp.json();
-  var t = model === 'claude' ? d.content[0].text : d.choices[0].message.content;
-  return t + '\n\n───\n🤖' + model.toUpperCase();
-}
-
-function ruleBasedReview(r) {
-  var prev = findPrev(r.streamer, r.date);
-  var rep = '📊 ' + escapeHtml(r.streamer) + ' · ' + escapeHtml(r.date) + ' 复盘\n' + '─'.repeat(40) + '\n\n📈 数据\n场观' + r.views + (prev ? '(' + pct(r.views, prev.views) + ')' : '') + ' 峰值' + r.peak + '人 停留' + r.stay + 's 粉' + r.fans + ' 收入¥' + r.income + ' 付费' + r.payers + '人';
-  if (r.big_gift) rep += ' 大礼' + r.big_gift + '个/¥' + r.big_gift_amt;
-  if (r.pk_count) rep += ' PK' + r.pk_count + '场赢' + r.pk_win;
-  var hl = [], is = [];
-  if (prev) {
-    if (r.income > prev.income * 1.2) hl.push('收入大涨' + pct(r.income, prev.income));
-    if (r.income < prev.income * 0.8) is.push('收入下滑' + pct(r.income, prev.income));
-    if (r.stay   > prev.stay   * 1.1) hl.push('停留提升');
-    if (r.stay   < prev.stay   * 0.9) is.push('停留下降');
-  }
-  if (hl.length) rep += '\n\n🌟亮点\n' + hl.map(function(h) { return '✅' + h; }).join('\n');
-  if (is.length) rep += '\n\n⚠️待改进\n' + is.map(function(i) { return '❌' + i; }).join('\n');
-  rep += '\n\n💡建议：保持灯光质量，准备互动话题，主动引导礼物。\n' + '─'.repeat(40) + '\n📝补充笔记：\n（手动填写...）';
-  return rep;
-}
-
-function copyReview() {
-  navigator.clipboard.writeText(generatedReviewText).then(function() { alert('✅ 已复制'); });
-}
-
-async function saveRecap() {
-  var r = window._lastRecapData || getRecapData();
-  if (!r.streamer) return alert('请选择主播');
-  var existing = D.recaps.find(function(x) { return x.date === r.date && x.streamer === r.streamer; });
-  try {
-    if (existing) await sbPatch('recaps', existing.id, r);
-    else await sbPost('recaps', r);
-  } catch(e) { return alert(sanitizeError(e)); }
-  await loadAllData(); renderRecapHistory(); renderRecapChart();
-  alert('✅ 已保存');
-}
-
-function renderRecapHistory() {
-  var sn = document.getElementById('recapStreamer').value;
-  var list = sn ? D.recaps.filter(function(r) { return r.streamer === sn; }) : D.recaps;
-  document.getElementById('recapHistory').innerHTML = list.slice(0, 30).map(function(r) {
-    return '<div class="script-card" style="cursor:pointer" onclick="loadRecap(\'' + r.id + '\')"><div style="display:flex;justify-content:space-between"><strong>' + escapeHtml(r.date) + '·' + escapeHtml(r.streamer) + '</strong><span>💰' + r.income + '元👥' + r.views + '</span></div></div>';
-  }).join('') || '<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
-}
-
-function loadRecap(id) {
-  var r = D.recaps.find(function(x) { return x.id === id; }); if (!r) return;
-  document.getElementById('recapStreamer').value = r.streamer;
-  document.getElementById('recapDate').value = r.date;
-  ['views','peak','stay','fans','income','payers','big_gift','big_gift_amt','pk_count','pk_win'].forEach(function(k) {
-    var el = document.getElementById('recap' + k.charAt(0).toUpperCase() + k.slice(1)); if (el) el.value = r[k] || '';
-  });
-  for (var i = 0; i < 24; i++) {
-    var el = document.getElementById('hv_' + i); if (el) el.value = (r.hourly && r.hourly[i]) || '';
-  }
-  document.getElementById('recapPeakTime').value = r.peak_time || '';
-  document.getElementById('recapLowTime').value = r.low_time || '';
-  // Rebuild key moments UI
-  document.getElementById('keyMoments').innerHTML = '<div class="form-row" style="margin-bottom:4px"><div class="form-group"><input type="time" class="km-time"></div><div class="form-group"><input type="text" class="km-event" placeholder="发生了什么"></div></div>';
-  if (r.key_moments) {
-    r.key_moments.forEach(function(km) {
-      addKeyMoment();
-      var rows = document.querySelectorAll('#keyMoments .form-row');
-      var last = rows[rows.length - 1];
-      last.querySelector('.km-time').value = km.time || '';
-      last.querySelector('.km-event').value = km.event || '';
-    });
-  }
+function loadRecap(id){
+  var r=D.recaps.find(function(x){return x.id===id;});if(!r)return;
+  document.getElementById('recapStreamer').value=r.streamer;document.getElementById('recapDate').value=r.date;
+  ['views','peak','stay','fans','income','payers','big_gift','big_gift_amt','pk_count','pk_win'].forEach(function(k){var el=document.getElementById('recap'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.value=r[k]||'';});
+  for(var i=0;i<24;i++){var el=document.getElementById('hv_'+i);if(el)el.value=(r.hourly&&r.hourly[i])||'';}
+  document.getElementById('recapPeakTime').value=r.peak_time||'';document.getElementById('recapLowTime').value=r.low_time||'';
+  document.getElementById('keyMoments').innerHTML='<div class="form-row" style="margin-bottom:4px"><div class="form-group"><input type="time" class="km-time"></div><div class="form-group"><input type="text" class="km-event" placeholder="发生了什么"></div></div>';
+  if(r.key_moments)r.key_moments.forEach(function(km){addKeyMoment();var rows=document.querySelectorAll('#keyMoments .form-row'),last=rows[rows.length-1];last.querySelector('.km-time').value=km.time||'';last.querySelector('.km-event').value=km.event||'';});
   switchPage('recap');
 }
-
-function renderRecapChart() {
-  var sn = document.getElementById('recapStreamer').value;
-  var recaps = (sn ? D.recaps.filter(function(r) { return r.streamer === sn; }) : D.recaps).slice(0, 30).reverse();
-  var ctx = document.getElementById('recapChart').getContext('2d');
-  if (recapChart) recapChart.destroy();
-  if (!recaps.length) { recapChart = null; return; }
-  recapChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: recaps.map(function(r) { return r.date.slice(5); }),
-      datasets: [
-        {label:'收入(元)', data:recaps.map(function(r){return r.income}), borderColor:'#e74c3c', tension:.3, pointRadius:3, yAxisID:'y'},
-        {label:'场观',     data:recaps.map(function(r){return r.views}),  borderColor:'#2980b9', tension:.3, pointRadius:3, yAxisID:'y1'}
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom' } },
-      scales: {
-        y:  { type: 'linear', position: 'left',  title: {display:true, text:'收入'}, },
-        y1: { type: 'linear', position: 'right', title: {display:true, text:'场观'}, grid:{drawOnChartArea:false} }
-      }
-    }
-  });
+function renderRecapChart(){
+  var sn=document.getElementById('recapStreamer').value,recaps=(sn?D.recaps.filter(function(r){return r.streamer===sn;}):D.recaps).slice(0,30).reverse();
+  var ctx=document.getElementById('recapChart').getContext('2d');if(recapChart)recapChart.destroy();if(!recaps.length){recapChart=null;return;}
+  recapChart=new Chart(ctx,{type:'line',data:{labels:recaps.map(function(r){return r.date.slice(5);}),datasets:[{label:'收入(元)',data:recaps.map(function(r){return r.income;}),borderColor:'#e74c3c',tension:.3,pointRadius:3,yAxisID:'y'},{label:'场观',data:recaps.map(function(r){return r.views;}),borderColor:'#2980b9',tension:.3,pointRadius:3,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{type:'linear',position:'left',title:{display:true,text:'收入'}},y1:{type:'linear',position:'right',title:{display:true,text:'场观'},grid:{drawOnChartArea:false}}}}});
 }
 
-// ==================== WORK LOG ====================
-function today() {
-  var d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+// WORK LOG
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function renderWorkLog(){
+  var td=today();document.getElementById('wlDate').textContent=td;document.getElementById('wlTime').value=new Date().toTimeString().slice(0,5);
+  var logs=D.workLogs[td]||[];
+  document.getElementById('workLogList').innerHTML=logs.map(function(l){return'<div class="worklog-entry"><div class="wl-time">'+escapeHtml(l.time)+'</div><div class="wl-content">'+escapeHtml(l.content)+'</div><button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="deleteWorkLog('+l.id+')">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
 }
-function renderWorkLog() {
-  var td = today();
-  document.getElementById('wlDate').textContent = td;
-  document.getElementById('wlTime').value = new Date().toTimeString().slice(0, 5);
-  var logs = D.workLogs[td] || [];
-  document.getElementById('workLogList').innerHTML = logs.map(function(l) {
-    return '<div class="worklog-entry"><div class="wl-time">' + escapeHtml(l.time) + '</div><div class="wl-content">' + escapeHtml(l.content) + '</div><button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="deleteWorkLog(' + l.id + ')">删除</button></div>';
-  }).join('') || '<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
+async function addWorkLog(){
+  var td=today(),time=document.getElementById('wlTime').value,content=document.getElementById('wlContent').value.trim();
+  if(!time||!content)return;
+  try{await callRpc('api_work_logs_add',{tok:getToken(),date_:td,time_:time,content_:content});}catch(e){return alert(sanitizeError(e));}
+  document.getElementById('wlContent').value='';await loadAllData();renderWorkLog();
 }
-async function addWorkLog() {
-  var td = today(), time = document.getElementById('wlTime').value, content = document.getElementById('wlContent').value.trim();
-  if (!time || !content) return;
-  try { await sbPost('work_logs', { date: td, time: time, content: content }); }
-  catch(e) { return alert(sanitizeError(e)); }
-  document.getElementById('wlContent').value = ''; await loadAllData(); renderWorkLog();
-}
-async function deleteWorkLog(id) {
-  if (!confirm('删除？')) return;
-  try { await sbDelete('work_logs', id); await loadAllData(); renderWorkLog(); }
-  catch(e) { alert(sanitizeError(e)); }
-}
+async function deleteWorkLog(id){if(!confirm('删除？'))return;try{await callRpc('api_work_logs_del',{tok:getToken(),id_:id});await loadAllData();renderWorkLog();}catch(e){alert(sanitizeError(e));}}
 
-// ==================== INIT ====================
-function initApp() {
-  document.getElementById('recapDate').value = today();
-  switchPage('scripts');
-}
+function initApp(){document.getElementById('recapDate').value=today();switchPage('scripts');}
 </script>
 </body>
 </html>
