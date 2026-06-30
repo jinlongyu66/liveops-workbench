@@ -106,12 +106,12 @@ ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 -- ============================================
 -- 6. RLS 策略 — 所有表通过 is_auth() 控制
 -- ============================================
-CREATE POLICY "pol_scripts"   ON scripts   FOR ALL USING (is_auth());
-CREATE POLICY "pol_lighting"  ON lighting  FOR ALL USING (is_auth());
-CREATE POLICY "pol_streamers" ON streamers FOR ALL USING (is_auth());
-CREATE POLICY "pol_recaps"    ON recaps    FOR ALL USING (is_auth());
-CREATE POLICY "pol_work_logs" ON work_logs FOR ALL USING (is_auth());
-CREATE POLICY "pol_config"    ON config    FOR ALL USING (is_auth());
+CREATE POLICY "pol_scripts"   ON scripts   FOR ALL USING (is_auth()) WITH CHECK (is_auth());
+CREATE POLICY "pol_lighting"  ON lighting  FOR ALL USING (is_auth()) WITH CHECK (is_auth());
+CREATE POLICY "pol_streamers" ON streamers FOR ALL USING (is_auth()) WITH CHECK (is_auth());
+CREATE POLICY "pol_recaps"    ON recaps    FOR ALL USING (is_auth()) WITH CHECK (is_auth());
+CREATE POLICY "pol_work_logs" ON work_logs FOR ALL USING (is_auth()) WITH CHECK (is_auth());
+CREATE POLICY "pol_config"    ON config    FOR ALL USING (is_auth()) WITH CHECK (is_auth());
 
 -- sessions 表：允许 is_auth() 函数读取（SECURITY DEFINER 自动绕过）
 -- 但也要允许本人删除自己的 token
