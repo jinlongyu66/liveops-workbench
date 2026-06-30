@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xyeecqpbaxzjrbukipyi.supabase.co; img-src 'self' data:; font-src 'self'">
 <title>🎛️ 直播运营工作台</title>
 <script src="chart.min.js"></script>
 <style>
@@ -222,338 +223,651 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 </nav>
 
 <script>
+// ==================== SECURITY HELPERS ====================
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeError(err) {
+  // Don't leak API details to the UI
+  var msg = err.message || String(err);
+  if (msg.length > 100) msg = msg.slice(0, 100) + '…';
+  var lower = msg.toLowerCase();
+  if (lower.includes('fetch') || lower.includes('network') || lower.includes('failed')) {
+    return '网络连接失败，请检查网络后刷新页面';
+  }
+  if (lower.includes('401') || lower.includes('403') || lower.includes('jwt')) {
+    return '登录已过期，请重新登录';
+  }
+  return '操作失败: ' + msg;
+}
+
 // ==================== SUPABASE REST API ====================
-const SB_URL='https://xyeecqpbaxzjrbukipyi.supabase.co';
-const SB_KEY='sb_publishable_vtschTBXX1hOhJ0BYLbOag_jsU2yL4m';
+var SB_URL='https://xyeecqpbaxzjrbukipyi.supabase.co';
+var SB_KEY='sb_publishable_vtschTBXX1hOhJ0BYLbOag_jsU2yL4m';
 
-function sbHeaders(){
-  return {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+function getToken() {
+  return sessionStorage.getItem('liveops_token') || '';
 }
 
-async function sbGet(table,query=''){
-  const url=`${SB_URL}/rest/v1/${table}?${query}`;
-  const resp=await fetch(url,{headers:sbHeaders()});
-  if(!resp.ok)throw new Error(await resp.text());
+function sbHeaders() {
+  var h = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+  var t = getToken();
+  if (t) h['x-session-token'] = t;
+  return h;
+}
+
+async function sbGet(table, query) {
+  query = query || '';
+  var url = SB_URL + '/rest/v1/' + table + '?' + query;
+  var resp = await fetch(url, {headers: sbHeaders()});
+  if (!resp.ok) {
+    if (resp.status === 401 || resp.status === 403) {
+      forceLogout();
+      throw new Error('会话过期');
+    }
+    throw new Error(await resp.text());
+  }
   return resp.json();
 }
 
-async function sbPost(table,data){
-  const resp=await fetch(`${SB_URL}/rest/v1/${table}`,{method:'POST',headers:sbHeaders(),body:JSON.stringify(data)});
-  if(!resp.ok)throw new Error(await resp.text());
+async function sbPost(table, data) {
+  var resp = await fetch(SB_URL + '/rest/v1/' + table, {
+    method: 'POST', headers: sbHeaders(), body: JSON.stringify(data)
+  });
+  if (!resp.ok) throw new Error(await resp.text());
   return resp.json();
 }
 
-async function sbPatch(table,id,data){
-  const resp=await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{method:'PATCH',headers:sbHeaders(),body:JSON.stringify(data)});
-  if(!resp.ok)throw new Error(await resp.text());
+async function sbPatch(table, id, data) {
+  var resp = await fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + id, {
+    method: 'PATCH', headers: sbHeaders(), body: JSON.stringify(data)
+  });
+  if (!resp.ok) throw new Error(await resp.text());
 }
 
-async function sbDelete(table,id){
-  const resp=await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{method:'DELETE',headers:sbHeaders()});
-  if(!resp.ok)throw new Error(await resp.text());
+async function sbDelete(table, id) {
+  var resp = await fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + id, {
+    method: 'DELETE', headers: sbHeaders()
+  });
+  if (!resp.ok) throw new Error(await resp.text());
 }
 
-let loggedIn=false;
-let currentPassword='';
-let D={scripts:[],lighting:[],streamers:[],recaps:[],workLogs:{}};
+// RPC calls (for auth functions)
+async function sbRpc(fnName, params) {
+  var resp = await fetch(SB_URL + '/rest/v1/rpc/' + fnName, {
+    method: 'POST', headers: sbHeaders(), body: JSON.stringify(params)
+  });
+  if (!resp.ok) throw new Error(await resp.text());
+  return resp.json();
+}
 
-document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('loginError').textContent='⏳ 连接中...';
+// ==================== STATE ====================
+var loggedIn = false;
+var D = {scripts:[], lighting:[], streamers:[], recaps:[], workLogs:{}};
+var LOGIN_COOLDOWN = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('loginError').textContent = '⏳ 连接中...';
   checkSession();
 });
 
 // ==================== AUTH ====================
-async function doLogin(){
-  const pw=document.getElementById('loginPassword').value;
-  if(!pw)return;
-  document.getElementById('loginError').textContent='⏳ 验证中...';
-  try{
-    const rows=await sbGet('config','select=value&key=eq.password');
-    if(!rows||rows.length===0){document.getElementById('loginError').textContent='❌ 未找到密码，请先运行SQL建表';return}
-    if(rows[0].value!==pw){document.getElementById('loginError').textContent='❌ 密码错误';return}
-    currentPassword=pw;
-    sessionStorage.setItem('liveops_pw',pw);
-    loggedIn=true;
-    document.getElementById('loginOverlay').style.display='none';
-    document.getElementById('statusBar').style.display='flex';
-    document.getElementById('topNav').style.display='flex';
-    document.getElementById('bottomNav').style.display='flex';
-    await loadAllData();
-    initApp();
-  }catch(e){
-    document.getElementById('loginError').textContent='❌ 网络错误: '+e.message+'. 可能是Supabase连不上';
+async function doLogin() {
+  if (LOGIN_COOLDOWN > Date.now()) {
+    document.getElementById('loginError').textContent = '⏳ 请稍等几秒再试';
+    return;
+  }
+  var pw = document.getElementById('loginPassword').value;
+  if (!pw) return;
+  document.getElementById('loginError').textContent = '⏳ 验证中...';
+  try {
+    var token = await sbRpc('login', { password_text: pw });
+    if (!token) {
+      LOGIN_COOLDOWN = Date.now() + 3000;
+      document.getElementById('loginError').textContent = '❌ 密码错误';
+      return;
+    }
+    sessionStorage.setItem('liveops_token', token);
+    LOGIN_COOLDOWN = 0;
+    await onAuthSuccess();
+  } catch (e) {
+    LOGIN_COOLDOWN = Date.now() + 5000;
+    document.getElementById('loginError').textContent = sanitizeError(e);
   }
 }
 
-async function changePassword(){
-  const np=document.getElementById('newPassword').value.trim();
-  if(!np)return alert('请输入新密码');
-  try{
-    await fetch(`${SB_URL}/rest/v1/config?key=eq.password`,{method:'PATCH',headers:sbHeaders(),body:JSON.stringify({value:np})});
-    currentPassword=np;
-    sessionStorage.setItem('liveops_pw',np);
-    alert('✅ 密码已修改！');
-  }catch(e){alert('修改失败: '+e.message)}
+function forceLogout() {
+  sessionStorage.removeItem('liveops_token');
+  loggedIn = false;
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('statusBar').style.display = 'none';
+  document.getElementById('topNav').style.display = 'none';
+  document.getElementById('bottomNav').style.display = 'none';
+  document.getElementById('loginError').textContent = '会话已过期，请重新登录';
 }
 
-function logout(){
-  sessionStorage.removeItem('liveops_pw');
+async function logout() {
+  try {
+    if (getToken()) await sbRpc('logout_fn', {});
+  } catch (e) { /* best effort */ }
+  sessionStorage.removeItem('liveops_token');
   location.reload();
 }
 
-async function checkSession(){
-  const saved=sessionStorage.getItem('liveops_pw');
-  if(saved){
-    try{
-      const rows=await sbGet('config','select=value&key=eq.password');
-      if(rows&&rows.length>0&&rows[0].value===saved){
-        currentPassword=saved;
-        loggedIn=true;
-        document.getElementById('loginOverlay').style.display='none';
-        document.getElementById('statusBar').style.display='flex';
-        document.getElementById('topNav').style.display='flex';
-        document.getElementById('bottomNav').style.display='flex';
-        await loadAllData();
-        initApp();
-        return;
-      }
-    }catch(e){}
+async function changePassword() {
+  var np = document.getElementById('newPassword').value.trim();
+  if (!np) return alert('请输入新密码');
+  if (np.length < 4) return alert('密码至少4位');
+  try {
+    var ok = await sbRpc('change_pw', { new_password: np });
+    if (ok) {
+      alert('✅ 密码已修改！');
+      document.getElementById('newPassword').value = '';
+    } else {
+      alert('修改失败：请确认已登录');
+    }
+  } catch (e) {
+    alert(sanitizeError(e));
   }
-  document.getElementById('loginOverlay').style.display='flex';
+}
+
+async function checkSession() {
+  var token = getToken();
+  if (!token) {
+    document.getElementById('loginOverlay').style.display = 'flex';
+    return;
+  }
+  // Verify token is still valid by making a light request
+  try {
+    var test = await sbGet('scripts', 'limit=1');
+    // Token valid
+    await onAuthSuccess();
+  } catch (e) {
+    forceLogout();
+  }
+}
+
+async function onAuthSuccess() {
+  loggedIn = true;
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('statusBar').style.display = 'flex';
+  document.getElementById('topNav').style.display = 'flex';
+  document.getElementById('bottomNav').style.display = 'flex';
+  await loadAllData();
+  initApp();
 }
 
 // ==================== DATA SYNC ====================
-async function loadAllData(){
-  document.getElementById('syncStatus').textContent='同步中...';
-  try{
-    const[scr,lig,str,rec,wl]=await Promise.all([
-      sbGet('scripts','select=*&order=id.asc'),
-      sbGet('lighting','select=*&order=id.asc'),
-      sbGet('streamers','select=*&order=id.asc'),
-      sbGet('recaps','select=*&order=date.desc'),
-      sbGet('work_logs','select=*&order=date.desc,time.asc')
+async function loadAllData() {
+  document.getElementById('syncStatus').textContent = '同步中...';
+  try {
+    var results = await Promise.all([
+      sbGet('scripts', 'select=*&order=id.asc'),
+      sbGet('lighting', 'select=*&order=id.asc'),
+      sbGet('streamers', 'select=*&order=id.asc'),
+      sbGet('recaps', 'select=*&order=date.desc'),
+      sbGet('work_logs', 'select=*&order=date.desc,time.asc')
     ]);
-    D.scripts=scr||[];
-    D.lighting=lig||[];
-    D.streamers=str||[];
-    D.recaps=rec||[];
-    D.workLogs={};
-    (wl||[]).forEach(l=>{if(!D.workLogs[l.date])D.workLogs[l.date]=[];D.workLogs[l.date].push(l)});
-    document.getElementById('syncDot').className='dot online';
-    document.getElementById('syncStatus').textContent='已同步';
-  }catch(e){
-    document.getElementById('syncDot').className='dot offline';
-    document.getElementById('syncStatus').textContent='离线: '+e.message;
+    D.scripts   = results[0] || [];
+    D.lighting  = results[1] || [];
+    D.streamers = results[2] || [];
+    D.recaps    = results[3] || [];
+    D.workLogs  = {};
+    (results[4] || []).forEach(function(l) {
+      if (!D.workLogs[l.date]) D.workLogs[l.date] = [];
+      D.workLogs[l.date].push(l);
+    });
+    document.getElementById('syncDot').className = 'dot online';
+    document.getElementById('syncStatus').textContent = '已同步';
+  } catch (e) {
+    document.getElementById('syncDot').className = 'dot offline';
+    document.getElementById('syncStatus').textContent = '离线: ' + escapeHtml(e.message);
   }
 }
 
-async function syncNow(){
-  document.getElementById('syncStatus').textContent='同步中...';
+async function syncNow() {
+  document.getElementById('syncStatus').textContent = '同步中...';
   await loadAllData();
   renderPage();
 }
 
 // ==================== NAV ====================
-let currentPage='scripts';
-function switchPage(name){
-  currentPage=name;
-  if(!loggedIn)return;
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.top-nav button,.bottom-nav button').forEach(b=>b.classList.remove('active'));
-  const pg=document.getElementById('page-'+name);if(pg)pg.classList.add('active');
-  document.querySelectorAll('[data-page="'+name+'"]').forEach(b=>b.classList.add('active'));
+var currentPage = 'scripts';
+function switchPage(name) {
+  currentPage = name;
+  if (!loggedIn) return;
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.top-nav button,.bottom-nav button').forEach(function(b) { b.classList.remove('active'); });
+  var pg = document.getElementById('page-' + name); if (pg) pg.classList.add('active');
+  document.querySelectorAll('[data-page="' + name + '"]').forEach(function(b) { b.classList.add('active'); });
   renderPage();
 }
-function renderPage(){
-  if(currentPage==='scripts')renderScripts();
-  if(currentPage==='lighting')renderLights();
-  if(currentPage==='streamers')renderStreamers();
-  if(currentPage==='recap')initRecap();
-  if(currentPage==='worklog')renderWorkLog();
+function renderPage() {
+  if (currentPage === 'scripts')   renderScripts();
+  if (currentPage === 'lighting')  renderLights();
+  if (currentPage === 'streamers') renderStreamers();
+  if (currentPage === 'recap')     initRecap();
+  if (currentPage === 'worklog')   renderWorkLog();
 }
 
-document.getElementById('topNav').addEventListener('click',e=>{if(e.target.dataset.page)switchPage(e.target.dataset.page)});
-document.getElementById('bottomNav').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.dataset.page)switchPage(b.dataset.page)});
+document.getElementById('topNav').addEventListener('click', function(e) {
+  if (e.target.dataset.page) switchPage(e.target.dataset.page);
+});
+document.getElementById('bottomNav').addEventListener('click', function(e) {
+  var b = e.target.closest('button');
+  if (b && b.dataset.page) switchPage(b.dataset.page);
+});
 
 // ==================== SCRIPTS ====================
-let scriptCat='全部';
-const SCRIPT_CATS=['全部','开场','感谢','PK','拉票','下播','大哥','日常'];
-function renderScripts(){
-  document.getElementById('scriptCatTags').innerHTML=SCRIPT_CATS.map(c=>`<button class="${c===scriptCat?'active':''}" onclick="scriptCat='${c}';renderScripts()">${c}</button>`).join('');
-  document.getElementById('newScriptCat').innerHTML=SCRIPT_CATS.filter(c=>c!=='全部').map(c=>`<option>${c}</option>`).join('');
-  const q=(document.getElementById('scriptSearch').value||'').toLowerCase();
-  let list=D.scripts;
-  if(scriptCat!=='全部')list=list.filter(s=>s.cat===scriptCat);
-  if(q)list=list.filter(s=>s.title.toLowerCase().includes(q)||s.body.toLowerCase().includes(q));
-  document.getElementById('scriptList').innerHTML=list.map(s=>`<div class="script-card">
-    <div class="sc-title">${s.title}<span class="chip chip-red">${s.cat}</span></div>
-    <div class="sc-body">${s.body}</div><div class="sc-actions">
-    <button class="btn btn-outline btn-sm" onclick="copyScript(${s.id})">📋 复制</button>
-    <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteScript(${s.id})">删除</button></div></div>`).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无话术</p>';
+var scriptCat = '全部';
+var SCRIPT_CATS = ['全部','开场','感谢','PK','拉票','下播','大哥','日常'];
+function renderScripts() {
+  document.getElementById('scriptCatTags').innerHTML = SCRIPT_CATS.map(function(c) {
+    return '<button class="' + (c === scriptCat ? 'active' : '') + '" onclick="scriptCat=\'' + escapeHtml(c) + '\';renderScripts()">' + escapeHtml(c) + '</button>';
+  }).join('');
+  document.getElementById('newScriptCat').innerHTML = SCRIPT_CATS.filter(function(c) { return c !== '全部'; }).map(function(c) {
+    return '<option>' + escapeHtml(c) + '</option>';
+  }).join('');
+  var q = (document.getElementById('scriptSearch').value || '').toLowerCase();
+  var list = D.scripts;
+  if (scriptCat !== '全部') list = list.filter(function(s) { return s.cat === scriptCat; });
+  if (q) list = list.filter(function(s) {
+    return (s.title || '').toLowerCase().indexOf(q) !== -1 || (s.body || '').toLowerCase().indexOf(q) !== -1;
+  });
+  document.getElementById('scriptList').innerHTML = list.map(function(s) {
+    return '<div class="script-card">'
+      + '<div class="sc-title">' + escapeHtml(s.title) + '<span class="chip chip-red">' + escapeHtml(s.cat) + '</span></div>'
+      + '<div class="sc-body">' + escapeHtml(s.body) + '</div>'
+      + '<div class="sc-actions">'
+      + '<button class="btn btn-outline btn-sm" onclick="copyScript(' + s.id + ')">📋 复制</button>'
+      + '<button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteScript(' + s.id + ')">删除</button>'
+      + '</div></div>';
+  }).join('') || '<p style="text-align:center;color:var(--text2);padding:20px">暂无话术</p>';
 }
-function toggleAddScript(){document.getElementById('addScriptForm').style.display=document.getElementById('addScriptForm').style.display==='none'?'block':'none'}
-async function addScript(){
-  const cat=document.getElementById('newScriptCat').value,title=document.getElementById('newScriptTitle').value.trim(),body=document.getElementById('newScriptBody').value.trim();
-  if(!title||!body)return alert('请填写完整');
-  try{await sbPost('scripts',{cat,title,body})}catch(e){return alert('保存失败: '+e.message)}
-  document.getElementById('newScriptTitle').value='';document.getElementById('newScriptBody').value='';
-  document.getElementById('addScriptForm').style.display='none';
-  await loadAllData();renderScripts();
+function toggleAddScript() {
+  var el = document.getElementById('addScriptForm');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
-async function deleteScript(id){if(confirm('删除？')){await sbDelete('scripts',id);await loadAllData();renderScripts()}}
-function copyScript(id){const s=D.scripts.find(x=>x.id===id);if(s)navigator.clipboard.writeText(s.body).then(()=>alert('✅ 已复制'));}
+async function addScript() {
+  var cat   = document.getElementById('newScriptCat').value;
+  var title = document.getElementById('newScriptTitle').value.trim();
+  var body  = document.getElementById('newScriptBody').value.trim();
+  if (!title || !body) return alert('请填写完整');
+  try { await sbPost('scripts', {cat:cat, title:title, body:body}); }
+  catch(e) { return alert(sanitizeError(e)); }
+  document.getElementById('newScriptTitle').value = '';
+  document.getElementById('newScriptBody').value = '';
+  document.getElementById('addScriptForm').style.display = 'none';
+  await loadAllData(); renderScripts();
+}
+async function deleteScript(id) {
+  if (!confirm('删除？')) return;
+  try { await sbDelete('scripts', id); await loadAllData(); renderScripts(); }
+  catch(e) { alert(sanitizeError(e)); }
+}
+function copyScript(id) {
+  var s = D.scripts.find(function(x) { return x.id === id; });
+  if (s) navigator.clipboard.writeText(s.body).then(function() { alert('✅ 已复制'); });
+}
 
 // ==================== LIGHTING ====================
-function renderLights(){
-  document.getElementById('lightList').innerHTML=D.lighting.map(l=>`<div class="light-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong>${l.name}</strong><span class="chip chip-blue">${l.style||''}</span></div>
-    <div style="font-size:13px;color:var(--text2);line-height:1.6">🔆${l.main||''} 💡${l.fill||''} 🔦${l.rim||''} ✨${l.beauty||''} ${l.note?'📝'+l.note:''}</div>
-    <button class="btn btn-outline btn-sm" onclick="deleteLight(${l.id})" style="margin-top:8px">删除</button></div>`).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无方案</p>';
+function renderLights() {
+  document.getElementById('lightList').innerHTML = D.lighting.map(function(l) {
+    return '<div class="light-card">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong>' + escapeHtml(l.name) + '</strong><span class="chip chip-blue">' + escapeHtml(l.style || '') + '</span></div>'
+      + '<div style="font-size:13px;color:var(--text2);line-height:1.6">🔆' + escapeHtml(l.main || '') + ' 💡' + escapeHtml(l.fill || '') + ' 🔦' + escapeHtml(l.rim || '') + ' ✨' + escapeHtml(l.beauty || '') + (l.note ? ' 📝' + escapeHtml(l.note) : '') + '</div>'
+      + '<button class="btn btn-outline btn-sm" onclick="deleteLight(' + l.id + ')" style="margin-top:8px">删除</button></div>';
+  }).join('') || '<p style="text-align:center;color:var(--text2);padding:20px">暂无方案</p>';
 }
-function toggleAddLight(){document.getElementById('addLightForm').style.display=document.getElementById('addLightForm').style.display==='none'?'block':'none'}
-async function addLight(){
-  const item={name:document.getElementById('newLightName').value.trim(),style:document.getElementById('newLightStyle').value.trim(),main:document.getElementById('newLightMain').value.trim(),fill:document.getElementById('newLightFill').value.trim(),rim:document.getElementById('newLightRim').value.trim(),beauty:document.getElementById('newLightBeauty').value.trim(),note:document.getElementById('newLightNote').value.trim()};
-  if(!item.name)return alert('请填写方案名称');
-  try{await sbPost('lighting',item)}catch(e){return alert('保存失败: '+e.message)}
-  ['newLightName','newLightStyle','newLightMain','newLightFill','newLightRim','newLightBeauty','newLightNote'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('addLightForm').style.display='none';
-  await loadAllData();renderLights();
+function toggleAddLight() {
+  var el = document.getElementById('addLightForm');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
-async function deleteLight(id){if(confirm('删除？')){await sbDelete('lighting',id);await loadAllData();renderLights()}}
+async function addLight() {
+  var item = {
+    name:   document.getElementById('newLightName').value.trim(),
+    style:  document.getElementById('newLightStyle').value.trim(),
+    main:   document.getElementById('newLightMain').value.trim(),
+    fill:   document.getElementById('newLightFill').value.trim(),
+    rim:    document.getElementById('newLightRim').value.trim(),
+    beauty: document.getElementById('newLightBeauty').value.trim(),
+    note:   document.getElementById('newLightNote').value.trim()
+  };
+  if (!item.name) return alert('请填写方案名称');
+  try { await sbPost('lighting', item); }
+  catch(e) { return alert(sanitizeError(e)); }
+  ['newLightName','newLightStyle','newLightMain','newLightFill','newLightRim','newLightBeauty','newLightNote'].forEach(function(id) {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('addLightForm').style.display = 'none';
+  await loadAllData(); renderLights();
+}
+async function deleteLight(id) {
+  if (!confirm('删除？')) return;
+  try { await sbDelete('lighting', id); await loadAllData(); renderLights(); }
+  catch(e) { alert(sanitizeError(e)); }
+}
 
 // ==================== STREAMERS ====================
-function renderStreamers(){
-  document.getElementById('recapStreamer').innerHTML='<option value="">选择主播</option>'+D.streamers.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
-  document.getElementById('streamerList').innerHTML=D.streamers.map(s=>`<div class="streamer-card">
-    <div style="display:flex;justify-content:space-between"><strong>${s.name}</strong><span class="chip chip-green">${s.platform}</span></div>
-    <div style="font-size:13px;color:var(--text2);margin-top:4px">${s.note||''} · ${s.start_date||''}</div>
-    <button class="btn btn-outline btn-sm" onclick="deleteStreamer(${s.id})" style="margin-top:8px">删除</button></div>`).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无主播</p>';
+function renderStreamers() {
+  document.getElementById('recapStreamer').innerHTML = '<option value="">选择主播</option>'
+    + D.streamers.map(function(s) { return '<option value="' + escapeHtml(s.name) + '">' + escapeHtml(s.name) + '</option>'; }).join('');
+  document.getElementById('streamerList').innerHTML = D.streamers.map(function(s) {
+    return '<div class="streamer-card">'
+      + '<div style="display:flex;justify-content:space-between"><strong>' + escapeHtml(s.name) + '</strong><span class="chip chip-green">' + escapeHtml(s.platform || '') + '</span></div>'
+      + '<div style="font-size:13px;color:var(--text2);margin-top:4px">' + escapeHtml(s.note || '') + ' · ' + escapeHtml(s.start_date || '') + '</div>'
+      + '<button class="btn btn-outline btn-sm" onclick="deleteStreamer(' + s.id + ')" style="margin-top:8px">删除</button></div>';
+  }).join('') || '<p style="text-align:center;color:var(--text2);padding:20px">暂无主播</p>';
 }
-function toggleAddStreamer(){document.getElementById('addStreamerForm').style.display=document.getElementById('addStreamerForm').style.display==='none'?'block':'none'}
-async function addStreamer(){
-  const s={name:document.getElementById('newStreamerName').value.trim(),platform:document.getElementById('newStreamerPlatform').value,note:document.getElementById('newStreamerNote').value.trim(),start_date:today()};
-  if(!s.name)return alert('请填写主播昵称');
-  try{await sbPost('streamers',s)}catch(e){return alert('保存失败: '+e.message)}
-  ['newStreamerName','newStreamerNote'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('addStreamerForm').style.display='none';
-  await loadAllData();renderStreamers();
+function toggleAddStreamer() {
+  var el = document.getElementById('addStreamerForm');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
-async function deleteStreamer(id){if(confirm('删除？')){await sbDelete('streamers',id);await loadAllData();renderStreamers()}}
+async function addStreamer() {
+  var s = {
+    name:     document.getElementById('newStreamerName').value.trim(),
+    platform: document.getElementById('newStreamerPlatform').value,
+    note:     document.getElementById('newStreamerNote').value.trim(),
+    start_date: today()
+  };
+  if (!s.name) return alert('请填写主播昵称');
+  try { await sbPost('streamers', s); }
+  catch(e) { return alert(sanitizeError(e)); }
+  ['newStreamerName','newStreamerNote'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('addStreamerForm').style.display = 'none';
+  await loadAllData(); renderStreamers();
+}
+async function deleteStreamer(id) {
+  if (!confirm('删除？')) return;
+  try { await sbDelete('streamers', id); await loadAllData(); renderStreamers(); }
+  catch(e) { alert(sanitizeError(e)); }
+}
 
 // ==================== RECAP ====================
-let recapChart=null,generatedReviewText='';
-function initRecap(){
-  document.getElementById('recapDate').value=today();
-  ['apiKey'].forEach(id=>document.getElementById(id).value=getApiKey());
-  document.getElementById('aiModel').value=getAiModel();
-  document.getElementById('customEndpoint').value=getCustomEp();
-  document.getElementById('customModel').value=getCustomModel();
+var recapChart = null, generatedReviewText = '';
+function initRecap() {
+  document.getElementById('recapDate').value = today();
+  ['apiKey'].forEach(function(id) { document.getElementById(id).value = getApiKey(); });
+  document.getElementById('aiModel').value = getAiModel();
+  document.getElementById('customEndpoint').value = getCustomEp();
+  document.getElementById('customModel').value = getCustomModel();
   onAiModelChange();
   renderStreamers();
   renderHourlyGrid();
   renderRecapHistory();
   renderRecapChart();
-  document.getElementById('generatedReviewCard').style.display='none';
+  document.getElementById('generatedReviewCard').style.display = 'none';
 }
-function onRecapChange(){initRecap()}
-function renderHourlyGrid(){document.getElementById('hourlyGrid').innerHTML=Array.from({length:24},(_,i)=>`<div class="hourly-item"><label>${i}:00</label><input type="number" id="hv_${i}" min="0"></div>`).join('')}
-function addKeyMoment(){const div=document.createElement('div');div.className='form-row';div.style.marginBottom='4px';div.innerHTML='<div class="form-group"><input type="time" class="km-time"></div><div class="form-group"><input type="text" class="km-event" placeholder="发生了什么"></div>';document.getElementById('keyMoments').appendChild(div)}
-function getKeyMoments(){const ts=document.querySelectorAll('.km-time'),es=document.querySelectorAll('.km-event'),r=[];for(let i=0;i<ts.length;i++){if(ts[i].value&&es[i].value)r.push({time:ts[i].value,event:es[i].value.trim()})}return r}
-function getRecapData(){const h={};for(let i=0;i<24;i++){const v=+document.getElementById('hv_'+i).value;if(v)h[i]=v}return{date:document.getElementById('recapDate').value,streamer:document.getElementById('recapStreamer').value,views:+document.getElementById('recapViews').value||0,peak:+document.getElementById('recapPeak').value||0,stay:+document.getElementById('recapStay').value||0,fans:+document.getElementById('recapFans').value||0,income:+document.getElementById('recapIncome').value||0,payers:+document.getElementById('recapPayers').value||0,big_gift:+document.getElementById('recapBigGift').value||0,big_gift_amt:+document.getElementById('recapBigGiftAmt').value||0,pk_count:+document.getElementById('recapPKCount').value||0,pk_win:+document.getElementById('recapPKWin').value||0,hourly:h,peak_time:document.getElementById('recapPeakTime').value,low_time:document.getElementById('recapLowTime').value,key_moments:getKeyMoments()}}
+function onRecapChange() { initRecap(); }
+function renderHourlyGrid() {
+  document.getElementById('hourlyGrid').innerHTML = Array.from({length:24}, function(_, i) {
+    return '<div class="hourly-item"><label>' + i + ':00</label><input type="number" id="hv_' + i + '" min="0"></div>';
+  }).join('');
+}
+function addKeyMoment() {
+  var div = document.createElement('div');
+  div.className = 'form-row';
+  div.style.marginBottom = '4px';
+  div.innerHTML = '<div class="form-group"><input type="time" class="km-time"></div><div class="form-group"><input type="text" class="km-event" placeholder="发生了什么"></div>';
+  document.getElementById('keyMoments').appendChild(div);
+}
+function getKeyMoments() {
+  var ts = document.querySelectorAll('.km-time'), es = document.querySelectorAll('.km-event'), r = [];
+  for (var i = 0; i < ts.length; i++) {
+    if (ts[i].value && es[i].value) r.push({time: ts[i].value, event: es[i].value.trim()});
+  }
+  return r;
+}
+function getRecapData() {
+  var h = {};
+  for (var i = 0; i < 24; i++) {
+    var v = +document.getElementById('hv_' + i).value;
+    if (v) h[i] = v;
+  }
+  return {
+    date: document.getElementById('recapDate').value,
+    streamer: document.getElementById('recapStreamer').value,
+    views: +document.getElementById('recapViews').value || 0,
+    peak: +document.getElementById('recapPeak').value || 0,
+    stay: +document.getElementById('recapStay').value || 0,
+    fans: +document.getElementById('recapFans').value || 0,
+    income: +document.getElementById('recapIncome').value || 0,
+    payers: +document.getElementById('recapPayers').value || 0,
+    big_gift: +document.getElementById('recapBigGift').value || 0,
+    big_gift_amt: +document.getElementById('recapBigGiftAmt').value || 0,
+    pk_count: +document.getElementById('recapPKCount').value || 0,
+    pk_win: +document.getElementById('recapPKWin').value || 0,
+    hourly: h,
+    peak_time: document.getElementById('recapPeakTime').value,
+    low_time: document.getElementById('recapLowTime').value,
+    key_moments: getKeyMoments()
+  };
+}
 
-function pct(a,b){if(!b)return'--';const v=((a-b)/b*100);return(v>=0?'+':'')+v.toFixed(1)+'%'}
-function findPrev(sn,date){const d=new Date(date);d.setDate(d.getDate()-1);const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return D.recaps.find(r=>r.streamer===sn&&r.date===ds)||null}
+function pct(a,b) { if (!b) return '--'; var v = (a-b)/b*100; return (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; }
+function findPrev(sn, date) {
+  var d = new Date(date); d.setDate(d.getDate() - 1);
+  var ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  return D.recaps.find(function(r) { return r.streamer === sn && r.date === ds; }) || null;
+}
 
-function autoFillYesterday(){
-  const yd=new Date();yd.setDate(yd.getDate()-1);const ds=yd.getFullYear()+'-'+String(yd.getMonth()+1).padStart(2,'0')+'-'+String(yd.getDate()).padStart(2,'0'),sn=document.getElementById('recapStreamer').value,prev=D.recaps.filter(r=>r.date===ds&&r.streamer===sn)[0];
-  if(!prev)return alert('没有昨天的数据');
-  ['views','peak','stay','fans','income','payers','big_gift','big_gift_amt','pk_count','pk_win'].forEach(k=>{const el=document.getElementById('recap'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.value=prev[k]||''});
-  for(let i=0;i<24;i++){const el=document.getElementById('hv_'+i);if(el&&prev.hourly&&prev.hourly[i])el.value=prev.hourly[i]}
-  if(prev.peak_time)document.getElementById('recapPeakTime').value=prev.peak_time;
-  if(prev.low_time)document.getElementById('recapLowTime').value=prev.low_time;
+function autoFillYesterday() {
+  var yd = new Date(); yd.setDate(yd.getDate() - 1);
+  var ds = yd.getFullYear() + '-' + String(yd.getMonth()+1).padStart(2,'0') + '-' + String(yd.getDate()).padStart(2,'0');
+  var sn = document.getElementById('recapStreamer').value;
+  var prev = D.recaps.filter(function(r) { return r.date === ds && r.streamer === sn; })[0];
+  if (!prev) return alert('没有昨天的数据');
+  ['views','peak','stay','fans','income','payers','big_gift','big_gift_amt','pk_count','pk_win'].forEach(function(k) {
+    var el = document.getElementById('recap' + k.charAt(0).toUpperCase() + k.slice(1)); if (el) el.value = prev[k] || '';
+  });
+  for (var i = 0; i < 24; i++) {
+    var el = document.getElementById('hv_' + i); if (el && prev.hourly && prev.hourly[i]) el.value = prev.hourly[i];
+  }
+  if (prev.peak_time) document.getElementById('recapPeakTime').value = prev.peak_time;
+  if (prev.low_time)  document.getElementById('recapLowTime').value  = prev.low_time;
 }
 
 // AI functions
-function getApiKey(){return localStorage.getItem('liveops_apikey')||''}
-function getAiModel(){return localStorage.getItem('liveops_aimodel')||'claude'}
-function getCustomEp(){return localStorage.getItem('liveops_custom_ep')||''}
-function getCustomModel(){return localStorage.getItem('liveops_custom_model')||''}
-function saveApiKey(){const k=document.getElementById('apiKey').value.trim(),m=document.getElementById('aiModel').value;localStorage.setItem('liveops_apikey',k);localStorage.setItem('liveops_aimodel',m);if(m==='custom'){localStorage.setItem('liveops_custom_ep',document.getElementById('customEndpoint').value.trim());localStorage.setItem('liveops_custom_model',document.getElementById('customModel').value.trim())}alert(k?'✅ 已保存':'✅ 已清除')}
-function onAiModelChange(){document.getElementById('customEndpointRow').style.display=document.getElementById('aiModel').value==='custom'?'block':'none'}
-
-async function generateReview(){
-  const r=getRecapData();if(!r.streamer)return alert('请选择主播');
-  const key=getApiKey();document.getElementById('generatedReviewCard').style.display='block';
-  if(key){document.getElementById('generatedReview').textContent='⏳ AI 生成中...';
-    try{generatedReviewText=await callAI(key,getAiModel(),r)}catch(e){generatedReviewText='❌ AI失败（'+e.message+'）\n\n'+ruleBasedReview(r)}
-  }else{generatedReviewText=ruleBasedReview(r)}
-  document.getElementById('generatedReview').textContent=generatedReviewText;
-  window._lastRecapData=r;window.scrollTo({top:document.getElementById('generatedReviewCard').offsetTop-20,behavior:'smooth'});
+function getApiKey()     { return localStorage.getItem('liveops_apikey') || ''; }
+function getAiModel()    { return localStorage.getItem('liveops_aimodel') || 'claude'; }
+function getCustomEp()   { return localStorage.getItem('liveops_custom_ep') || ''; }
+function getCustomModel(){ return localStorage.getItem('liveops_custom_model') || ''; }
+function saveApiKey() {
+  var k = document.getElementById('apiKey').value.trim();
+  var m = document.getElementById('aiModel').value;
+  localStorage.setItem('liveops_apikey', k);
+  localStorage.setItem('liveops_aimodel', m);
+  if (m === 'custom') {
+    localStorage.setItem('liveops_custom_ep', document.getElementById('customEndpoint').value.trim());
+    localStorage.setItem('liveops_custom_model', document.getElementById('customModel').value.trim());
+  }
+  alert(k ? '✅ 已保存' : '✅ 已清除');
+}
+function onAiModelChange() {
+  document.getElementById('customEndpointRow').style.display = document.getElementById('aiModel').value === 'custom' ? 'block' : 'none';
 }
 
-async function callAI(apiKey,model,r){
-  const prev=findPrev(r.streamer,r.date);const sysPrompt='你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。';
-  const prompt='直播数据：'+JSON.stringify({...r,yesterday:prev||null});
-  let url,headers,body;
-  if(model==='claude'){url='https://api.anthropic.com/v1/messages';headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};body=JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,system:sysPrompt,messages:[{role:'user',content:prompt}]})}
-  else if(model==='deepseek'){url='https://api.deepseek.com/v1/chat/completions';headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:'deepseek-chat',max_tokens:800,messages:[{role:'system',content:sysPrompt},{role:'user',content:prompt}]})}
-  else if(model==='openai'){url='https://api.openai.com/v1/chat/completions';headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:'gpt-4o-mini',max_tokens:800,messages:[{role:'system',content:sysPrompt},{role:'user',content:prompt}]})}
-  else{url=getCustomEp();headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:getCustomModel()||'gpt-4o-mini',max_tokens:800,messages:[{role:'system',content:sysPrompt},{role:'user',content:prompt}]})}
-  const resp=await fetch(url,{method:'POST',headers,body});if(!resp.ok){const e=await resp.text();throw new Error(e.slice(0,150))}
-  const d=await resp.json();let t=model==='claude'?d.content[0].text:d.choices[0].message.content;return t+'\n\n───\n🤖'+model.toUpperCase();
+async function generateReview() {
+  var r = getRecapData(); if (!r.streamer) return alert('请选择主播');
+  var key = getApiKey();
+  document.getElementById('generatedReviewCard').style.display = 'block';
+  if (key) {
+    document.getElementById('generatedReview').textContent = '⏳ AI 生成中...';
+    try {
+      generatedReviewText = await callAI(key, getAiModel(), r);
+    } catch (e) {
+      generatedReviewText = '❌ AI失败（' + escapeHtml(e.message) + '）\n\n' + ruleBasedReview(r);
+    }
+  } else {
+    generatedReviewText = ruleBasedReview(r);
+  }
+  document.getElementById('generatedReview').textContent = generatedReviewText;
+  window._lastRecapData = r;
+  window.scrollTo({top: document.getElementById('generatedReviewCard').offsetTop - 20, behavior: 'smooth'});
 }
 
-function ruleBasedReview(r){
-  const prev=findPrev(r.streamer,r.date);let rep=`📊 ${r.streamer} · ${r.date} 复盘\n${'─'.repeat(40)}\n\n📈 数据\n场观${r.views}${prev?'('+pct(r.views,prev.views)+')':''} 峰值${r.peak}人 停留${r.stay}s 粉${r.fans} 收入¥${r.income} 付费${r.payers}人`;if(r.big_gift)rep+=` 大礼${r.big_gift}个/¥${r.big_gift_amt}`;if(r.pk_count)rep+=` PK${r.pk_count}场赢${r.pk_win}`;const hl=[],is=[];if(prev){if(r.income>prev.income*1.2)hl.push('收入大涨'+pct(r.income,prev.income));if(r.income<prev.income*.8)is.push('收入下滑'+pct(r.income,prev.income));if(r.stay>prev.stay*1.1)hl.push('停留提升');if(r.stay<prev.stay*.9)is.push('停留下降');}if(hl.length)rep+='\n\n🌟亮点\n'+hl.map(h=>'✅'+h).join('\n');if(is.length)rep+='\n\n⚠️待改进\n'+is.map(i=>'❌'+i).join('\n');rep+='\n\n💡建议：保持灯光质量，准备互动话题，主动引导礼物。\n'+'─'.repeat(40)+'\n📝补充笔记：\n（手动填写...）';return rep}
-
-function copyReview(){navigator.clipboard.writeText(generatedReviewText).then(()=>alert('✅ 已复制'))}
-
-async function saveRecap(){
-  const r=window._lastRecapData||getRecapData();if(!r.streamer)return alert('请选择主播');
-  const existing=D.recaps.find(x=>x.date===r.date&&x.streamer===r.streamer);
-  try{if(existing)await sbPatch('recaps',existing.id,r);else await sbPost('recaps',r)}catch(e){return alert('保存失败: '+e.message)}
-  await loadAllData();renderRecapHistory();renderRecapChart();alert('✅ 已保存');
+async function callAI(apiKey, model, r) {
+  var prev = findPrev(r.streamer, r.date);
+  var sysPrompt = '你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。';
+  var prompt = '直播数据：' + JSON.stringify(Object.assign({}, r, {yesterday: prev || null}));
+  var url, headers, body;
+  if (model === 'claude') {
+    url = 'https://api.anthropic.com/v1/messages';
+    headers = {'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};
+    body = JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,system:sysPrompt,messages:[{role:'user',content:prompt}]});
+  } else if (model === 'deepseek') {
+    url = 'https://api.deepseek.com/v1/chat/completions';
+    headers = {'Content-Type':'application/json','Authorization':'Bearer '+apiKey};
+    body = JSON.stringify({model:'deepseek-chat',max_tokens:800,messages:[{role:'system',content:sysPrompt},{role:'user',content:prompt}]});
+  } else if (model === 'openai') {
+    url = 'https://api.openai.com/v1/chat/completions';
+    headers = {'Content-Type':'application/json','Authorization':'Bearer '+apiKey};
+    body = JSON.stringify({model:'gpt-4o-mini',max_tokens:800,messages:[{role:'system',content:sysPrompt},{role:'user',content:prompt}]});
+  } else {
+    url = getCustomEp();
+    headers = {'Content-Type':'application/json','Authorization':'Bearer '+apiKey};
+    body = JSON.stringify({model:getCustomModel()||'gpt-4o-mini',max_tokens:800,messages:[{role:'system',content:sysPrompt},{role:'user',content:prompt}]});
+  }
+  var resp = await fetch(url, {method:'POST',headers:headers,body:body});
+  if (!resp.ok) { var errText = await resp.text(); throw new Error(errText.slice(0, 150)); }
+  var d = await resp.json();
+  var t = model === 'claude' ? d.content[0].text : d.choices[0].message.content;
+  return t + '\n\n───\n🤖' + model.toUpperCase();
 }
 
-function renderRecapHistory(){
-  const sn=document.getElementById('recapStreamer').value,list=sn?D.recaps.filter(r=>r.streamer===sn):D.recaps;
-  document.getElementById('recapHistory').innerHTML=list.slice(0,30).map(r=>`<div class="script-card" style="cursor:pointer" onclick="loadRecap('${r.id}')"><div style="display:flex;justify-content:space-between"><strong>${r.date}·${r.streamer}</strong><span>💰${r.income}元👥${r.views}</span></div></div>`).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
+function ruleBasedReview(r) {
+  var prev = findPrev(r.streamer, r.date);
+  var rep = '📊 ' + escapeHtml(r.streamer) + ' · ' + escapeHtml(r.date) + ' 复盘\n' + '─'.repeat(40) + '\n\n📈 数据\n场观' + r.views + (prev ? '(' + pct(r.views, prev.views) + ')' : '') + ' 峰值' + r.peak + '人 停留' + r.stay + 's 粉' + r.fans + ' 收入¥' + r.income + ' 付费' + r.payers + '人';
+  if (r.big_gift) rep += ' 大礼' + r.big_gift + '个/¥' + r.big_gift_amt;
+  if (r.pk_count) rep += ' PK' + r.pk_count + '场赢' + r.pk_win;
+  var hl = [], is = [];
+  if (prev) {
+    if (r.income > prev.income * 1.2) hl.push('收入大涨' + pct(r.income, prev.income));
+    if (r.income < prev.income * 0.8) is.push('收入下滑' + pct(r.income, prev.income));
+    if (r.stay   > prev.stay   * 1.1) hl.push('停留提升');
+    if (r.stay   < prev.stay   * 0.9) is.push('停留下降');
+  }
+  if (hl.length) rep += '\n\n🌟亮点\n' + hl.map(function(h) { return '✅' + h; }).join('\n');
+  if (is.length) rep += '\n\n⚠️待改进\n' + is.map(function(i) { return '❌' + i; }).join('\n');
+  rep += '\n\n💡建议：保持灯光质量，准备互动话题，主动引导礼物。\n' + '─'.repeat(40) + '\n📝补充笔记：\n（手动填写...）';
+  return rep;
 }
 
-function loadRecap(id){
-  const r=D.recaps.find(x=>x.id===id);if(!r)return;
-  document.getElementById('recapStreamer').value=r.streamer;document.getElementById('recapDate').value=r.date;
-  ['views','peak','stay','fans','income','payers','big_gift','big_gift_amt','pk_count','pk_win'].forEach(k=>{const el=document.getElementById('recap'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.value=r[k]||''});
-  for(let i=0;i<24;i++){const el=document.getElementById('hv_'+i);if(el)el.value=(r.hourly&&r.hourly[i])||''}
-  document.getElementById('recapPeakTime').value=r.peak_time||'';document.getElementById('recapLowTime').value=r.low_time||'';
-  document.getElementById('keyMoments').innerHTML='<div class="form-row" style="margin-bottom:4px"><div class="form-group"><input type="time" class="km-time"></div><div class="form-group"><input type="text" class="km-event" placeholder="发生了什么"></div></div>';
-  if(r.key_moments)r.key_moments.forEach(km=>{addKeyMoment();const rows=document.querySelectorAll('#keyMoments .form-row'),last=rows[rows.length-1];last.querySelector('.km-time').value=km.time;last.querySelector('.km-event').value=km.event});
+function copyReview() {
+  navigator.clipboard.writeText(generatedReviewText).then(function() { alert('✅ 已复制'); });
+}
+
+async function saveRecap() {
+  var r = window._lastRecapData || getRecapData();
+  if (!r.streamer) return alert('请选择主播');
+  var existing = D.recaps.find(function(x) { return x.date === r.date && x.streamer === r.streamer; });
+  try {
+    if (existing) await sbPatch('recaps', existing.id, r);
+    else await sbPost('recaps', r);
+  } catch(e) { return alert(sanitizeError(e)); }
+  await loadAllData(); renderRecapHistory(); renderRecapChart();
+  alert('✅ 已保存');
+}
+
+function renderRecapHistory() {
+  var sn = document.getElementById('recapStreamer').value;
+  var list = sn ? D.recaps.filter(function(r) { return r.streamer === sn; }) : D.recaps;
+  document.getElementById('recapHistory').innerHTML = list.slice(0, 30).map(function(r) {
+    return '<div class="script-card" style="cursor:pointer" onclick="loadRecap(\'' + r.id + '\')"><div style="display:flex;justify-content:space-between"><strong>' + escapeHtml(r.date) + '·' + escapeHtml(r.streamer) + '</strong><span>💰' + r.income + '元👥' + r.views + '</span></div></div>';
+  }).join('') || '<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
+}
+
+function loadRecap(id) {
+  var r = D.recaps.find(function(x) { return x.id === id; }); if (!r) return;
+  document.getElementById('recapStreamer').value = r.streamer;
+  document.getElementById('recapDate').value = r.date;
+  ['views','peak','stay','fans','income','payers','big_gift','big_gift_amt','pk_count','pk_win'].forEach(function(k) {
+    var el = document.getElementById('recap' + k.charAt(0).toUpperCase() + k.slice(1)); if (el) el.value = r[k] || '';
+  });
+  for (var i = 0; i < 24; i++) {
+    var el = document.getElementById('hv_' + i); if (el) el.value = (r.hourly && r.hourly[i]) || '';
+  }
+  document.getElementById('recapPeakTime').value = r.peak_time || '';
+  document.getElementById('recapLowTime').value = r.low_time || '';
+  // Rebuild key moments UI
+  document.getElementById('keyMoments').innerHTML = '<div class="form-row" style="margin-bottom:4px"><div class="form-group"><input type="time" class="km-time"></div><div class="form-group"><input type="text" class="km-event" placeholder="发生了什么"></div></div>';
+  if (r.key_moments) {
+    r.key_moments.forEach(function(km) {
+      addKeyMoment();
+      var rows = document.querySelectorAll('#keyMoments .form-row');
+      var last = rows[rows.length - 1];
+      last.querySelector('.km-time').value = km.time || '';
+      last.querySelector('.km-event').value = km.event || '';
+    });
+  }
   switchPage('recap');
 }
 
-function renderRecapChart(){
-  const sn=document.getElementById('recapStreamer').value,recaps=(sn?D.recaps.filter(r=>r.streamer===sn):D.recaps).slice(0,30).reverse();
-  const ctx=document.getElementById('recapChart').getContext('2d');if(recapChart)recapChart.destroy();if(!recaps.length){recapChart=null;return}
-  recapChart=new Chart(ctx,{type:'line',data:{labels:recaps.map(r=>r.date.slice(5)),datasets:[{label:'收入(元)',data:recaps.map(r=>r.income),borderColor:'#e74c3c',tension:.3,pointRadius:3,yAxisID:'y'},{label:'场观',data:recaps.map(r=>r.views),borderColor:'#2980b9',tension:.3,pointRadius:3,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{type:'linear',position:'left',title:{display:true,text:'收入'}},y1:{type:'linear',position:'right',title:{display:true,text:'场观'},grid:{drawOnChartArea:false}}}}});
+function renderRecapChart() {
+  var sn = document.getElementById('recapStreamer').value;
+  var recaps = (sn ? D.recaps.filter(function(r) { return r.streamer === sn; }) : D.recaps).slice(0, 30).reverse();
+  var ctx = document.getElementById('recapChart').getContext('2d');
+  if (recapChart) recapChart.destroy();
+  if (!recaps.length) { recapChart = null; return; }
+  recapChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: recaps.map(function(r) { return r.date.slice(5); }),
+      datasets: [
+        {label:'收入(元)', data:recaps.map(function(r){return r.income}), borderColor:'#e74c3c', tension:.3, pointRadius:3, yAxisID:'y'},
+        {label:'场观',     data:recaps.map(function(r){return r.views}),  borderColor:'#2980b9', tension:.3, pointRadius:3, yAxisID:'y1'}
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } },
+      scales: {
+        y:  { type: 'linear', position: 'left',  title: {display:true, text:'收入'}, },
+        y1: { type: 'linear', position: 'right', title: {display:true, text:'场观'}, grid:{drawOnChartArea:false} }
+      }
+    }
+  });
 }
 
 // ==================== WORK LOG ====================
-function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function renderWorkLog(){
-  const td=today();document.getElementById('wlDate').textContent=td;document.getElementById('wlTime').value=new Date().toTimeString().slice(0,5);
-  const logs=D.workLogs[td]||[];
-  document.getElementById('workLogList').innerHTML=logs.map((l,i)=>`<div class="worklog-entry"><div class="wl-time">${l.time}</div><div class="wl-content">${l.content}</div><button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="deleteWorkLog(${l.id})">删除</button></div>`).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
+function today() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
-async function addWorkLog(){
-  const td=today(),time=document.getElementById('wlTime').value,content=document.getElementById('wlContent').value.trim();
-  if(!time||!content)return;
-  try{await sbPost('work_logs',{date:td,time,content})}catch(e){return alert('保存失败: '+e.message)}
-  document.getElementById('wlContent').value='';await loadAllData();renderWorkLog();
+function renderWorkLog() {
+  var td = today();
+  document.getElementById('wlDate').textContent = td;
+  document.getElementById('wlTime').value = new Date().toTimeString().slice(0, 5);
+  var logs = D.workLogs[td] || [];
+  document.getElementById('workLogList').innerHTML = logs.map(function(l) {
+    return '<div class="worklog-entry"><div class="wl-time">' + escapeHtml(l.time) + '</div><div class="wl-content">' + escapeHtml(l.content) + '</div><button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="deleteWorkLog(' + l.id + ')">删除</button></div>';
+  }).join('') || '<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
 }
-async function deleteWorkLog(id){if(confirm('删除？')){await sbDelete('work_logs',id);await loadAllData();renderWorkLog()}}
+async function addWorkLog() {
+  var td = today(), time = document.getElementById('wlTime').value, content = document.getElementById('wlContent').value.trim();
+  if (!time || !content) return;
+  try { await sbPost('work_logs', { date: td, time: time, content: content }); }
+  catch(e) { return alert(sanitizeError(e)); }
+  document.getElementById('wlContent').value = ''; await loadAllData(); renderWorkLog();
+}
+async function deleteWorkLog(id) {
+  if (!confirm('删除？')) return;
+  try { await sbDelete('work_logs', id); await loadAllData(); renderWorkLog(); }
+  catch(e) { alert(sanitizeError(e)); }
+}
 
 // ==================== INIT ====================
-function initApp(){document.getElementById('recapDate').value=today();switchPage('scripts')}
+function initApp() {
+  document.getElementById('recapDate').value = today();
+  switchPage('scripts');
+}
 </script>
 </body>
 </html>
