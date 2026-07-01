@@ -326,7 +326,7 @@ function getToken(){return sessionStorage.getItem('liveops_token')||'';}
 function getUser(){try{return JSON.parse(sessionStorage.getItem('liveops_user')||'{}');}catch(e){return{};}}
 function isAdmin(){return getUser().role==='admin';}
 function canEdit(){var u=getUser();if(u.role==='admin')return true;return u.permissions&&u.permissions.can_edit;}
-function hasModule(m){var u=getUser();if(u.role==='admin')return true;return u.permissions&&u.permissions.modules&&u.permissions.modules.indexOf(m)!==-1;}
+function hasModule(m){var u=getUser();if(m==='ai'&&u.role!=='admin')return false;if(u.role==='admin')return true;return u.permissions&&u.permissions.modules&&u.permissions.modules.indexOf(m)!==-1;}
 function showActions(html){return canEdit()||isAdmin()?html:'';}
 function applyPermissions(){
   var u=getUser(),isA=isAdmin(),edit=canEdit();
