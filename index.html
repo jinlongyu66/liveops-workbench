@@ -162,8 +162,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
       <div id="customEndpointRow" style="display:none"><div class="form-row"><div class="form-group"><label>API 地址</label><input type="text" id="customEndpoint"></div><div class="form-group"><label>模型名</label><input type="text" id="customModel"></div></div></div></div></details>
     <h3>📊 基础数据</h3>
     <div class="form-row-3"><div class="form-group"><label>场观</label><input type="number" id="recapViews"></div><div class="form-group"><label>峰值在线</label><input type="number" id="recapPeak"></div><div class="form-group"><label>停留(秒)</label><input type="number" id="recapStay"></div></div>
-    <div class="form-row-3"><div class="form-group"><label>新增粉丝</label><input type="number" id="recapFans"></div><div class="form-group"><label>礼物收入(元)</label><input type="number" id="recapIncome"></div><div class="form-group"><label>付费人数</label><input type="number" id="recapPayers"></div></div>
-    <h3>🎁 礼物拆解</h3><div class="form-row"><div class="form-group"><label>大礼物个数</label><input type="number" id="recapBigGift"></div><div class="form-group"><label>大礼物总额</label><input type="number" id="recapBigGiftAmt"></div></div>
+    <div class="form-row-3"><div class="form-group"><label>新增粉丝</label><input type="number" id="recapFans"></div><div class="form-group"><label>礼物收入(元)</label><input type="number" id="recapIncome" oninput="autoCalcRecap()"></div><div class="form-group"><label>付费人数</label><input type="number" id="recapPayers" oninput="autoCalcRecap()"></div></div>
+    <h3>📊 实时指标</h3><div class="recap-metrics"><div class="recap-metric"><div class="rm-val" id="liveARPPU">--</div><div class="rm-label">ARPPU</div></div><div class="recap-metric"><div class="rm-val" id="livePayRate">--</div><div class="rm-label">付费率</div></div><div class="recap-metric"><div class="rm-val" id="liveBigPct">--</div><div class="rm-label">大礼占比</div></div></div>
+    <h3>🎁 礼物拆解</h3><div class="form-row"><div class="form-group"><label>大礼物个数</label><input type="number" id="recapBigGift" oninput="autoCalcRecap()"></div><div class="form-group"><label>大礼物总额</label><input type="number" id="recapBigGiftAmt" oninput="autoCalcRecap()"></div></div><div class="form-row"><div class="form-group"><label>大礼物个数</label><input type="number" id="recapBigGift"></div><div class="form-group"><label>大礼物总额</label><input type="number" id="recapBigGiftAmt"></div></div>
     <h3>🆚 PK记录</h3><div class="form-row"><div class="form-group"><label>PK次数</label><input type="number" id="recapPKCount"></div><div class="form-group"><label>赢几场</label><input type="number" id="recapPKWin"></div></div>
     <h3>📈 在线人数（每小时取点）</h3><div class="hourly-grid" id="hourlyGrid"></div>
     <div class="form-row" style="margin-top:8px"><div class="form-group"><label>峰值时间</label><input type="time" id="recapPeakTime"></div><div class="form-group"><label>低谷时间</label><input type="time" id="recapLowTime"></div></div>
@@ -589,6 +590,7 @@ function renderSchedule(){
   document.getElementById('scheduleList').innerHTML=html;
 }
 function shiftWeek(n){scheduleWeekOffset+=n;renderSchedule();}
+function jumpToDate(){var d=document.getElementById('scheduleJumpDate').value;if(!d)return;var t=new Date(),m=getMonday(new Date(t)),td=new Date(d);m.setHours(0,0,0,0);td.setHours(0,0,0,0);scheduleWeekOffset=Math.round((td-m)/(7*86400000));renderSchedule();}
 function toggleAddSchedule(){var e=document.getElementById('addScheduleForm');e.style.display=e.style.display==='none'?'block':'none';}
 async function addSchedule(){
   var sn=document.getElementById('newScheduleStreamer').value,date=document.getElementById('newScheduleDate').value,slot=document.getElementById('newScheduleSlot').value.trim(),notes=document.getElementById('newScheduleNotes').value.trim();
@@ -690,6 +692,13 @@ function getCustomEp(){return localStorage.getItem('liveops_custom_ep')||'';}
 function getCustomModel(){return localStorage.getItem('liveops_custom_model')||'';}
 function saveApiKey(){var k=document.getElementById('apiKey').value.trim(),m=document.getElementById('aiModel').value;localStorage.setItem('liveops_apikey',k);localStorage.setItem('liveops_aimodel',m);if(m==='custom'){localStorage.setItem('liveops_custom_ep',document.getElementById('customEndpoint').value.trim());localStorage.setItem('liveops_custom_model',document.getElementById('customModel').value.trim());}alert(k?'✅ 已保存':'✅ 已清除');}
 function onAiModelChange(){document.getElementById('customEndpointRow').style.display=document.getElementById('aiModel').value==='custom'?'block':'none';}
+
+function autoCalcRecap(){
+  var inc=+document.getElementById('recapIncome').value||0,pay=+document.getElementById('recapPayers').value||0,views=+document.getElementById('recapViews').value||0,big=+document.getElementById('recapBigGiftAmt').value||0;
+  document.getElementById('liveARPPU').textContent=pay>0?'¥'+(inc/pay).toFixed(0):'--';
+  document.getElementById('livePayRate').textContent=views>0?(pay/views*100).toFixed(1)+'%':'--';
+  document.getElementById('liveBigPct').textContent=inc>0?(big/inc*100).toFixed(0)+'%':'--';
+}
 
 async function generateReview(){
   var r=getRecapData();if(!r.streamer)return alert('请选择主播');
