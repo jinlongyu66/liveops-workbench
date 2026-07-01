@@ -465,6 +465,7 @@ document.getElementById('topNav').addEventListener('click',function(e){if(e.targ
 document.getElementById('bottomNav').addEventListener('click',function(e){var b=e.target.closest('button');if(b&&b.dataset.page)switchPage(b.dataset.page);});
 
 // SCRIPTS
+var editId=null;
 var scriptCat='全部',SCRIPT_CATS=['全部','开场','感谢','PK','拉票','下播','大哥','日常'];
 function renderScripts(){
   document.getElementById('scriptCatTags').innerHTML=SCRIPT_CATS.map(function(c){return'<button class="'+(c===scriptCat?'active':'')+'" onclick="scriptCat=\''+escapeHtml(c)+'\';renderScripts()">'+escapeHtml(c)+'</button>';}).join('');
@@ -472,13 +473,14 @@ function renderScripts(){
   var q=(document.getElementById('scriptSearch').value||'').toLowerCase(),list=D.scripts;
   if(scriptCat!=='全部')list=list.filter(function(s){return s.cat===scriptCat;});
   if(q)list=list.filter(function(s){return(s.title||'').toLowerCase().indexOf(q)!==-1||(s.body||'').toLowerCase().indexOf(q)!==-1;});
-  document.getElementById('scriptList').innerHTML=list.map(function(s){return'<div class="script-card"><div class="sc-title">'+escapeHtml(s.title)+'<span class="chip chip-red">'+escapeHtml(s.cat)+'</span></div><div class="sc-body">'+escapeHtml(s.body)+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="copyScript('+s.id+')">📋 复制</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteScript('+s.id+')">删除</button></div></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无话术</p>';
+  document.getElementById('scriptList').innerHTML=list.map(function(s){return'<div class="script-card"><div class="sc-title">'+escapeHtml(s.title)+'<span class="chip chip-red">'+escapeHtml(s.cat)+'</span></div><div class="sc-body">'+escapeHtml(s.body)+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="copyScript('+s.id+')">📋</button> <button class="btn btn-sm" style="color:var(--blue)" onclick="editScript('+s.id+')">✏️</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteScript('+s.id+')">🗑</button></div></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无话术</p>';
 }
-function toggleAddScript(){var e=document.getElementById('addScriptForm');e.style.display=e.style.display==='none'?'block':'none';}
+function toggleAddScript(){editId=null;var e=document.getElementById('addScriptForm');e.style.display=e.style.display==='none'?'block':'none';}
+function editScript(id){var s=D.scripts.find(function(x){return x.id===id;});if(!s)return;editId=id;document.getElementById("newScriptCat").value=s.cat;document.getElementById("newScriptTitle").value=s.title;document.getElementById("newScriptBody").value=s.body;document.getElementById("addScriptForm").style.display="block";}
 async function addScript(){
   var cat=document.getElementById('newScriptCat').value,title=document.getElementById('newScriptTitle').value.trim(),body=document.getElementById('newScriptBody').value.trim();
   if(!title||!body)return alert('请填写完整');
-  try{await callRpc('api_scripts_add',{tok:getToken(),cat_:cat,title_:title,body_:body});}catch(e){return alert(sanitizeError(e));}
+  if(editId){try{await callRpc('api_scripts_update',{tok:getToken(),id_:editId,cat_:cat,title_:title,body_:body});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_scripts_add',{tok:getToken(),cat_:cat,title_:title,body_:body});}catch(e){return alert(sanitizeError(e));}}
   document.getElementById('newScriptTitle').value='';document.getElementById('newScriptBody').value='';document.getElementById('addScriptForm').style.display='none';
   await loadAllData();renderScripts();
 }
