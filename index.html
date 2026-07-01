@@ -415,7 +415,7 @@ function importBackup(input){
 }
 
 async function checkSession(){
-  var tok=getToken();if(!tok){document.getElementById('loginOverlay').style.display='flex';return;}
+  var tok=getToken();if(!tok||!getUser().username){forceLogout();return;}
   try{await callRpc('api_scripts_list',{tok:tok});await onAuthSuccess();}catch(e){forceLogout();}
 }
 
