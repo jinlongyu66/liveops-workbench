@@ -164,13 +164,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div class="form-row-3"><div class="form-group"><label>场观</label><input type="number" id="recapViews"></div><div class="form-group"><label>峰值在线</label><input type="number" id="recapPeak"></div><div class="form-group"><label>停留(秒)</label><input type="number" id="recapStay"></div></div>
     <div class="form-row-3"><div class="form-group"><label>新增粉丝</label><input type="number" id="recapFans"></div><div class="form-group"><label>礼物收入(元)</label><input type="number" id="recapIncome" oninput="autoCalcRecap()"></div><div class="form-group"><label>付费人数</label><input type="number" id="recapPayers" oninput="autoCalcRecap()"></div></div>
     <h3>📊 实时指标</h3><div class="recap-metrics"><div class="recap-metric"><div class="rm-val" id="liveARPPU">--</div><div class="rm-label">ARPPU</div></div><div class="recap-metric"><div class="rm-val" id="livePayRate">--</div><div class="rm-label">付费率</div></div><div class="recap-metric"><div class="rm-val" id="liveBigPct">--</div><div class="rm-label">大礼占比</div></div></div>
-    <h3>🎁 礼物拆解</h3><div class="form-row"><div class="form-group"><label>大礼物个数</label><input type="number" id="recapBigGift" oninput="autoCalcRecap()"></div><div class="form-group"><label>大礼物总额</label><input type="number" id="recapBigGiftAmt" oninput="autoCalcRecap()"></div></div><div class="form-row"><div class="form-group"><label>大礼物个数</label><input type="number" id="recapBigGift"></div><div class="form-group"><label>大礼物总额</label><input type="number" id="recapBigGiftAmt"></div></div>
+    <h3>🎁 礼物拆解</h3><div class="form-row"><div class="form-group"><label>大礼物个数</label><input type="number" id="recapBigGift" oninput="autoCalcRecap()"></div><div class="form-group"><label>大礼物总额</label><input type="number" id="recapBigGiftAmt" oninput="autoCalcRecap()"></div></div>
     <h3>🆚 PK记录</h3><div class="form-row"><div class="form-group"><label>PK次数</label><input type="number" id="recapPKCount"></div><div class="form-group"><label>赢几场</label><input type="number" id="recapPKWin"></div></div>
     <h3>📈 在线人数（每小时取点）</h3><div class="hourly-grid" id="hourlyGrid"></div>
     <div class="form-row" style="margin-top:8px"><div class="form-group"><label>峰值时间</label><input type="time" id="recapPeakTime"></div><div class="form-group"><label>低谷时间</label><input type="time" id="recapLowTime"></div></div>
     <h3>🔑 关键时间节点</h3><div id="keyMoments"><div class="form-row" style="margin-bottom:4px"><div class="form-group"><input type="time" class="km-time"></div><div class="form-group"><input type="text" class="km-event" placeholder="发生了什么"></div></div></div>
     <button class="btn btn-outline btn-sm" onclick="addKeyMoment()" style="margin-bottom:12px">+ 加节点</button>
-    <div style="display:flex;gap:8px;margin-bottom:16px"><button class="btn btn-primary" onclick="generateReview()">🤖 生成复盘报告</button><button class="btn btn-outline" onclick="autoFillYesterday()">📥 预填昨天</button></div></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px"><button class="btn btn-primary" onclick="generateReview()">💾 保存数据</button><button class="btn btn-primary" onclick="generateReview()">🤖 生成报告</button><button class="btn btn-outline" onclick="autoFillYesterday()">📥 预填昨天</button></div></div>
   <div class="card" id="generatedReviewCard" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0">📋 复盘报告</h2><button class="btn btn-green btn-sm" onclick="copyReview()">📋 一键复制</button></div><div id="generatedReview" style="line-height:1.8;font-size:14px;white-space:pre-wrap"></div><button class="btn btn-primary" onclick="saveRecap()" style="margin-top:12px">💾 保存复盘</button></div>
   <div class="card"><h3>📈 7天趋势</h3><div class="chart-wrapper"><canvas id="recapChart"></canvas></div></div>
   <div class="card"><h3>📋 复盘历史</h3><div id="recapHistory"></div></div>
@@ -837,6 +837,10 @@ function ruleBasedReview(r){
   return rep+'\n\n💡建议：保持灯光质量，准备互动话题，主动引导礼物。\n'+'─'.repeat(40)+'\n📝补充笔记：\n（手动填写...）';
 }
 function copyReview(){navigator.clipboard.writeText(generatedReviewText).then(function(){alert('✅ 已复制');});}
+async function saveRecapDirect(){
+  var r=getRecapData();if(!r.streamer)return alert('请选择主播');
+  try{await callRpc('api_recaps_save',{tok:getToken(),data_:r});await loadAllData();renderRecapHistory();renderRecapChart();alert('✅ 已保存');}catch(e){alert(sanitizeError(e));}
+}
 async function saveRecap(){
   var r=window._lastRecapData||getRecapData();if(!r.streamer)return alert('请选择主播');
   try{await callRpc('api_recaps_save',{tok:getToken(),data_:r});}catch(e){return alert(sanitizeError(e));}
