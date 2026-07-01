@@ -631,6 +631,7 @@ function editUser(id,role,ps){
   });
   document.getElementById('addUserForm').style.display='block';
 }
+async function deleteUser(id){if(!confirm('删除该用户？'))return;try{await callRpc('api_users_del',{tok:getToken(),id_:id});loadUsers();}catch(e){alert(sanitizeError(e));}}
 function loadUsers(){
   callRpc('api_users_list',{tok:getToken()}).then(function(users){
     var html='';
