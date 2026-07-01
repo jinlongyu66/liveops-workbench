@@ -551,8 +551,14 @@ function copyAiResult(){navigator.clipboard.writeText(_aiResultText).then(functi
 var ALL_MODULES=['scripts','lighting','streamers','recap','worklog','vips','opponents','schedule','revenue'];
 var MOD_LABELS={scripts:'话术',lighting:'灯光',streamers:'主播',recap:'复盘',worklog:'日志',vips:'大哥',opponents:'PK',schedule:'排班',revenue:'收入'};
 function renderUsers(){
-  var sel='';ALL_MODULES.forEach(function(m){sel+='<button class="chip chip-green" style="cursor:pointer" id="um_'+m+'" onclick="toggleModule(''+m+'')">'+MOD_LABELS[m]+'</button>';});
-  document.getElementById('newUserModules').innerHTML=sel+' <span style="font-size:11px;color:var(--text2)">点灰=不给看</span>';
+  var container=document.getElementById('newUserModules');container.innerHTML='';
+  ALL_MODULES.forEach(function(m){
+    var btn=document.createElement('button');btn.className='chip chip-green';btn.style.cursor='pointer';btn.id='um_'+m;btn.textContent=MOD_LABELS[m];
+    btn.onclick=function(){toggleModule(m);};
+    container.appendChild(btn);
+  });
+  var hint=document.createElement('span');hint.style.cssText='font-size:11px;color:var(--text2);margin-left:4px';hint.textContent=' 点灰=不给看';
+  container.appendChild(hint);
 }
 function toggleModule(m){var t=document.getElementById('um_'+m);if(t.classList.contains('chip-green')){t.classList.remove('chip-green');t.style.opacity=0.3}else{t.classList.add('chip-green');t.style.opacity=1}}
 function toggleAddUser(){var e=document.getElementById('addUserForm');e.style.display=e.style.display==='none'?'block':'none';renderUsers();}
