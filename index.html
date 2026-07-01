@@ -578,7 +578,9 @@ function applyAiResult(){
 // USERS
 var ALL_MODULES=['scripts','lighting','streamers','recap','worklog','vips','opponents','schedule','revenue'];
 var MOD_LABELS={scripts:'话术',lighting:'灯光',streamers:'主播',recap:'复盘',worklog:'日志',vips:'大哥',opponents:'PK',schedule:'排班',revenue:'收入'};
+var editUserId=null;
 function renderUsers(){
+  loadUsers();
   var container=document.getElementById('newUserModules');container.innerHTML='';
   ALL_MODULES.forEach(function(m){
     var btn=document.createElement('button');btn.className='chip chip-green';btn.style.cursor='pointer';btn.id='um_'+m;btn.textContent=MOD_LABELS[m];
@@ -589,13 +591,30 @@ function renderUsers(){
   container.appendChild(hint);
 }
 function toggleModule(m){var t=document.getElementById('um_'+m);if(t.classList.contains('chip-green')){t.classList.remove('chip-green');t.style.opacity=0.3}else{t.classList.add('chip-green');t.style.opacity=1}}
-function toggleAddUser(){var e=document.getElementById('addUserForm');e.style.display=e.style.display==='none'?'block':'none';renderUsers();}
+function toggleAddUser(){editUserId=null;document.getElementById('newUserName').value='';document.getElementById('newUserPw').value='';document.getElementById('newUserEdit').checked=false;document.getElementById('newUserRole').value='viewer';var e=document.getElementById('addUserForm');e.style.display=e.style.display==='none'?'block':'none';renderUsers();}
 async function addUser(){
   var un=document.getElementById('newUserName').value.trim(),pw=document.getElementById('newUserPw').value,role=document.getElementById('newUserRole').value,edit=document.getElementById('newUserEdit').checked;
-  if(!un||!pw)return alert('请填写完整');
   var mods=[];ALL_MODULES.forEach(function(m){if(document.getElementById('um_'+m).classList.contains('chip-green'))mods.push(m);});
-  try{await callRpc('api_users_add',{tok:getToken(),username_:un,password_:pw,role_:role,permissions_:{modules:mods,can_edit:edit}});}catch(e){return alert(sanitizeError(e));}
-  document.getElementById('addUserForm').style.display='none';loadUsers();
+  if(editUserId){
+    if(!un)return alert('请填写用户名');
+    try{await callRpc('api_users_update',{tok:getToken(),id_:editUserId,permissions_:{modules:mods,can_edit:edit},role_:role});}catch(e){return alert(sanitizeError(e));}
+    if(pw)await callRpc('api_users_reset_pw',{tok:getToken(),id_:editUserId,new_pw:pw}).catch(function(){});
+    editUserId=null;
+  }else{
+    if(!un||!pw)return alert('请填写用户名和密码');
+    try{await callRpc('api_users_add',{tok:getToken(),username_:un,password_:pw,role_:role,permissions_:{modules:mods,can_edit:edit}});}catch(e){return alert(sanitizeError(e));}
+  }
+  document.getElementById('addUserForm').style.display='none';document.getElementById('newUserName').value='';document.getElementById('newUserPw').value='';loadUsers();
+}
+function editUser(id,u){
+  editUserId=id;document.getElementById('newUserName').value=u.username;document.getElementById('newUserPw').value='';
+  document.getElementById('newUserRole').value=u.role;document.getElementById('newUserEdit').checked=(u.permissions||{}).can_edit||false;
+  var mods=(u.permissions||{}).modules||[];
+  ALL_MODULES.forEach(function(m){
+    var b=document.getElementById('um_'+m);if(!b)return;
+    if(mods.indexOf(m)>=0){b.classList.add('chip-green');b.style.opacity=1;}else{b.classList.remove('chip-green');b.style.opacity=0.3;}
+  });
+  document.getElementById('addUserForm').style.display='block';
 }
 function loadUsers(){
   callRpc('api_users_list',{tok:getToken()}).then(function(users){
@@ -603,10 +622,11 @@ function loadUsers(){
     users.forEach(function(u){
       var ps=u.permissions||{},mods=ps.modules||[],edit=ps.can_edit;
       var labels=mods.map(function(m){return MOD_LABELS[m]||m;}).join('、');
-      html+='<div class="script-card"><div class="sc-title">'+escapeHtml(u.username)+' <span class="chip chip-red">'+escapeHtml(u.role)+'</span> <span class="chip chip-green">'+(edit?'可编辑':'只读')+'</span></div><div class="sc-body">模块：'+(labels||'无')+'</div>';
-      if(u.username!=='admin')html+='<div class="sc-actions"><button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteUser('+u.id+')">删除</button></div>';
-      else html+='<div class="sc-actions"><span style="font-size:12px;color:var(--text2)">管理员不可删除</span></div>';
-      html+='</div>';
+      html+='<div class="script-card"><div class="sc-title">'+escapeHtml(u.username)+' <span class="chip chip-red">'+escapeHtml(u.role)+'</span> <span class="chip chip-green">'+(edit?'可编辑':'只读')+'</span></div><div class="sc-body">模块：'+(labels||'无')+'</div><div class="sc-actions">';
+      html+='<button class="btn btn-sm" style="color:var(--blue)" onclick=\\'editUser('+u.id+','+JSON.stringify({username:u.username,role:u.role,permissions:ps})+')\\'>✏️ 编辑</button> ';
+      if(u.username!=='admin')html+='<button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteUser('+u.id+')">删除</button>';
+      else html+='<span style="font-size:12px;color:var(--text2)">管理员不可删除</span>';
+      html+='</div></div>';
     });
     document.getElementById('userList').innerHTML=html||'<p style="text-align:center;color:var(--text2)">暂无用户</p>';
   }).catch(function(){});
