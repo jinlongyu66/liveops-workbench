@@ -74,6 +74,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .status-bar .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px}
 .status-bar .dot.online{background:var(--green)}
 .status-bar .dot.offline{background:var(--orange)}
+.schedule-day-header{font-size:13px;font-weight:600;color:var(--accent);margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
 @media(max-width:640px){
   .top-nav{display:none}.bottom-nav{display:flex}.page-container{padding:10px}.card{padding:14px}
   .form-row,.form-row-3{grid-template-columns:1fr}
@@ -102,6 +103,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
   <button data-page="streamers">📊 主播</button>
   <button data-page="recap">📝 复盘</button>
   <button data-page="worklog">📋 日志</button>
+  <button data-page="vips">👑 大哥</button>
+  <button data-page="opponents">🆚 对手</button>
+  <button data-page="schedule">📅 排班</button>
+  <button data-page="revenue">💰 收入</button>
   <button data-page="settings">⚙️ 设置</button>
 </nav>
 
@@ -112,7 +117,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div class="tag-row" id="scriptCatTags"></div>
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <input type="text" id="scriptSearch" placeholder="🔍 搜索..." style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px" oninput="renderScripts()">
-      <button class="btn btn-outline btn-sm" onclick="toggleAddScript()">+ 添加</button></div>
+      <button class="btn btn-outline btn-sm" onclick="toggleAddScript()">+ 添加</button> <button class="btn btn-sm" style="background:var(--blue-light);color:var(--blue)" onclick="generateScriptAI()">🤖 AI</button></div>
     <div id="addScriptForm" style="display:none;margin-bottom:12px;padding:12px;background:var(--bg);border-radius:8px">
       <div class="form-group"><label>场景分类</label><select id="newScriptCat"></select></div>
       <div class="form-group"><label>话术标题</label><input type="text" id="newScriptTitle"></div>
@@ -123,7 +128,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 
 <div class="page" id="page-lighting">
   <div class="card"><h2>💡 灯光方案库</h2>
-    <button class="btn btn-outline btn-sm" style="margin-bottom:12px" onclick="toggleAddLight()">+ 添加方案</button>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:12px" onclick="toggleAddLight()">+ 添加方案</button> <button class="btn btn-sm" style="background:var(--blue-light);color:var(--blue);margin-bottom:12px" onclick="generateLightAI()">🤖 AI</button>
     <div id="addLightForm" style="display:none;margin-bottom:12px;padding:12px;background:var(--bg);border-radius:8px">
       <div class="form-group"><label>方案名称</label><input type="text" id="newLightName"></div>
       <div class="form-group"><label>适合风格</label><input type="text" id="newLightStyle"></div>
@@ -191,6 +196,66 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
   <div class="card"><button class="btn btn-outline" onclick="logout()" style="width:100%;color:var(--accent);border-color:var(--accent)">🚪 退出登录</button></div>
 </div>
 
+<!-- 👑 大哥管理 -->
+<div class="page" id="page-vips">
+  <div class="card"><h2>👑 大哥管理</h2>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:12px" onclick="toggleAddVip()">+ 添加大哥</button>
+    <div id="addVipForm" style="display:none;margin-bottom:12px;padding:12px;background:var(--bg);border-radius:8px">
+      <div class="form-row"><div class="form-group"><label>昵称</label><input type="text" id="newVipName"></div>
+      <div class="form-group"><label>平台</label><select id="newVipPlatform"><option>抖音</option><option>快手</option><option>B站</option><option>视频号</option></select></div></div>
+      <div class="form-row"><div class="form-group"><label>累计消费(元)</label><input type="number" id="newVipSpent" min="0"></div>
+      <div class="form-group"><label>生日</label><input type="date" id="newVipBirthday"></div></div>
+      <div class="form-group"><label>偏好</label><input type="text" id="newVipPrefs" placeholder="喜欢的直播类型、话题等"></div>
+      <div class="form-group"><label>备注</label><textarea id="newVipNotes" rows="2" placeholder="沟通记录、注意事项"></textarea></div>
+      <button class="btn btn-primary btn-sm" onclick="addVip()">保存</button></div>
+    <div id="vipList"></div></div>
+</div>
+
+<!-- 🆚 PK对手库 -->
+<div class="page" id="page-opponents">
+  <div class="card"><h2>🆚 PK对手库</h2>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:12px" onclick="toggleAddOpponent()">+ 添加对手</button>
+    <div id="addOpponentForm" style="display:none;margin-bottom:12px;padding:12px;background:var(--bg);border-radius:8px">
+      <div class="form-row"><div class="form-group"><label>对手名称</label><input type="text" id="newOppName"></div>
+      <div class="form-group"><label>平台</label><select id="newOppPlatform"><option>抖音</option><option>快手</option><option>B站</option><option>视频号</option></select></div></div>
+      <div class="form-row"><div class="form-group"><label>预估排名</label><input type="text" id="newOppRank" placeholder="如: 前100"></div>
+      <div class="form-group"><label>风格</label><input type="text" id="newOppStyle" placeholder="如: 游戏/唱歌/聊天"></div></div>
+      <div class="form-row"><div class="form-group"><label>赢(场)</label><input type="number" id="newOppWins" min="0" value="0"></div>
+      <div class="form-group"><label>输(场)</label><input type="number" id="newOppLosses" min="0" value="0"></div></div>
+      <div class="form-group"><label>应对策略</label><textarea id="newOppStrategy" rows="2" placeholder="PK时的技巧和策略"></textarea></div>
+      <button class="btn btn-primary btn-sm" onclick="addOpponent()">保存</button></div>
+    <div id="opponentList"></div></div>
+</div>
+
+<!-- 📅 排班表 -->
+<div class="page" id="page-schedule">
+  <div class="card"><h2>📅 排班表</h2>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+      <button class="btn btn-outline btn-sm" onclick="shiftWeek(-1)">◀ 上周</button>
+      <span id="scheduleWeekLabel" style="font-weight:600;font-size:14px"></span>
+      <button class="btn btn-outline btn-sm" onclick="shiftWeek(1)">下周 ▶</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="toggleAddSchedule()">+ 排班</button>
+      <button class="btn btn-sm" style="background:var(--blue-light);color:var(--blue)" onclick="suggestScheduleOptimal()">🤖 AI排班</button></div>
+    <div id="addScheduleForm" style="display:none;margin-bottom:12px;padding:12px;background:var(--bg);border-radius:8px">
+      <div class="form-row"><div class="form-group"><label>主播</label><select id="newScheduleStreamer"></select></div>
+      <div class="form-group"><label>日期</label><input type="date" id="newScheduleDate"></div></div>
+      <div class="form-group"><label>时间段</label><input type="text" id="newScheduleSlot" placeholder="如: 20:00-23:00"></div>
+      <div class="form-group"><label>备注</label><input type="text" id="newScheduleNotes" placeholder="备注（可选）"></div>
+      <button class="btn btn-primary btn-sm" onclick="addSchedule()">保存</button></div>
+    <div id="scheduleList"></div></div>
+</div>
+
+<!-- 💰 收入面板 -->
+<div class="page" id="page-revenue">
+  <div class="card"><h2>💰 收入面板</h2>
+    <div class="form-row" style="margin-bottom:12px"><div class="form-group"><label>主播</label><select id="revenueStreamer" onchange="renderRevenue()"><option value="">全部主播</option></select></div>
+    <div class="form-group"><label>日期范围</label><div style="display:flex;gap:6px"><input type="date" id="revenueStart" onchange="renderRevenue()"><input type="date" id="revenueEnd" onchange="renderRevenue()"></div></div></div>
+    <button class="btn btn-primary" onclick="renderRevenue()" style="margin-bottom:16px">🔍 查询</button></div>
+  <div class="card" id="revenueSummaryCard" style="display:none"><h2>📊 收入概览</h2><div class="recap-metrics" id="revenueMetrics"></div></div>
+  <div class="card" id="revenueChartCard" style="display:none"><h3>📈 收入趋势</h3><div class="chart-wrapper"><canvas id="revenueChart"></canvas></div></div>
+  <div class="card" id="revenueByStreamerCard" style="display:none"><h3>👥 按主播汇总</h3><div id="revenueByStreamer"></div></div>
+</div>
+
 </div>
 
 <nav class="bottom-nav" id="bottomNav" style="display:none">
@@ -200,6 +265,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
   <button data-page="recap"><span class="icon">📝</span>复盘</button>
   <button data-page="worklog"><span class="icon">📋</span>日志</button>
   <button data-page="settings"><span class="icon">⚙️</span>设置</button>
+  <button data-page="vips"><span class="icon">👑</span>大哥</button>
+  <button data-page="opponents"><span class="icon">🆚</span>PK</button>
+  <button data-page="schedule"><span class="icon">📅</span>排班</button>
+  <button data-page="revenue"><span class="icon">💰</span>收入</button>
 </nav>
 
 <script>
@@ -221,7 +290,7 @@ async function callRpc(fnName,params){
 }
 
 var loggedIn=false;
-var D={scripts:[],lighting:[],streamers:[],recaps:[],workLogs:{}};
+var D={scripts:[],lighting:[],streamers:[],recaps:[],workLogs:{},vips:[],opponents:[],schedules:[],revenueSummary:[],revenueDetail:[]};
 var LOGIN_COOLDOWN=0;
 
 document.addEventListener('DOMContentLoaded',function(){document.getElementById('loginError').textContent='⏳ 连接中...';checkSession();});
@@ -308,10 +377,14 @@ async function loadAllData(){
       callRpc('api_lighting_list',{tok:tok}),
       callRpc('api_streamers_list',{tok:tok}),
       callRpc('api_recaps_list',{tok:tok}),
-      callRpc('api_work_logs_list',{tok:tok})
+      callRpc('api_work_logs_list',{tok:tok}),
+      callRpc('api_vips_list',{tok:tok}),
+      callRpc('api_opponents_list',{tok:tok}),
+      callRpc('api_schedules_list',{tok:tok})
     ]);
     D.scripts=r[0]||[];D.lighting=r[1]||[];D.streamers=r[2]||[];D.recaps=r[3]||[];
     D.workLogs={};(r[4]||[]).forEach(function(l){if(!D.workLogs[l.date])D.workLogs[l.date]=[];D.workLogs[l.date].push(l);});
+    D.vips=r[5]||[];D.opponents=r[6]||[];D.schedules=r[7]||[];
     document.getElementById('syncDot').className='dot online';document.getElementById('syncStatus').textContent='已同步';
   }catch(e){
     document.getElementById('syncDot').className='dot offline';document.getElementById('syncStatus').textContent='离线: '+escapeHtml(e.message);
@@ -327,7 +400,7 @@ function switchPage(name){
   document.querySelectorAll('[data-page="'+name+'"]').forEach(function(b){b.classList.add('active');});
   renderPage();
 }
-function renderPage(){if(currentPage==='scripts')renderScripts();if(currentPage==='lighting')renderLights();if(currentPage==='streamers')renderStreamers();if(currentPage==='recap')initRecap();if(currentPage==='worklog')renderWorkLog();}
+function renderPage(){if(currentPage==='scripts')renderScripts();if(currentPage==='lighting')renderLights();if(currentPage==='streamers')renderStreamers();if(currentPage==='recap')initRecap();if(currentPage==='worklog')renderWorkLog();if(currentPage==='vips')renderVips();if(currentPage==='opponents')renderOpponents();if(currentPage==='schedule')renderSchedule();if(currentPage==='revenue')renderRevenue();}
 
 document.getElementById('topNav').addEventListener('click',function(e){if(e.target.dataset.page)switchPage(e.target.dataset.page);});
 document.getElementById('bottomNav').addEventListener('click',function(e){var b=e.target.closest('button');if(b&&b.dataset.page)switchPage(b.dataset.page);});
@@ -352,6 +425,169 @@ async function addScript(){
 }
 async function deleteScript(id){if(!confirm('删除？'))return;try{await callRpc('api_scripts_del',{tok:getToken(),id_:id});await loadAllData();renderScripts();}catch(e){alert(sanitizeError(e));}}
 function copyScript(id){var s=D.scripts.find(function(x){return x.id===id;});if(s)navigator.clipboard.writeText(s.body).then(function(){alert('✅ 已复制');});}
+
+// VIP AI helper
+async function callAIWithPrompt(apiKey,model,prompt,system,maxTokens){
+  maxTokens=maxTokens||500;var url,headers,body;
+  if(model==='claude'){url='https://api.anthropic.com/v1/messages';headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};body=JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:maxTokens,system:system,messages:[{role:'user',content:prompt}]});}
+  else if(model==='deepseek'){url='https://api.deepseek.com/v1/chat/completions';headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:'deepseek-chat',max_tokens:maxTokens,messages:[{role:'system',content:system},{role:'user',content:prompt}]});}
+  else if(model==='openai'){url='https://api.openai.com/v1/chat/completions';headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:'gpt-4o-mini',max_tokens:maxTokens,messages:[{role:'system',content:system},{role:'user',content:prompt}]});}
+  else{url=getCustomEp();headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:getCustomModel()||'gpt-4o-mini',max_tokens:maxTokens,messages:[{role:'system',content:system},{role:'user',content:prompt}]});}
+  var resp=await fetch(url,{method:'POST',headers:headers,body:body});if(!resp.ok){var err=await resp.text();throw new Error(err.slice(0,150));}
+  var d=await resp.json();return model==='claude'?d.content[0].text:d.choices[0].message.content;
+}
+
+// SCRIPTS AI
+async function generateScriptAI(){
+  var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
+  var cat=scriptCat==='全部'?'开场':scriptCat;
+  var existing=D.scripts.filter(function(s){return s.cat===cat;}).map(function(s){return s.title+': '+s.body;}).slice(0,5);
+  var prompt='场景：'+cat+' | 已有话术：'+JSON.stringify(existing);
+  var model=getAiModel();
+  var system='你是直播话术专家。根据场景生成2-3条新的直播话术，每条标题和正文，格式：标题：xxx 正文：xxx。用中文。';
+  try{var t=await callAIWithPrompt(key,model,prompt,system,600);alert('AI已生成：\
+\
+'+t);}catch(e){alert(sanitizeError(e));}
+}
+
+// LIGHTING AI
+async function generateLightAI(){
+  var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
+  var styles=prompt('输入直播风格（如：唱歌、聊天、游戏、带货）：','聊天');if(!styles)return;
+  var prompt='风格：'+styles+' | 现有方案：'+JSON.stringify(D.lighting.map(function(l){return l.name;}));
+  var model=getAiModel();
+  var system='你是直播灯光工程师。根据风格推荐灯光方案：主灯(型号+位置+色温)、辅灯、轮廓灯、美颜参数、环境光建议。格式：主灯：xxx | 辅灯：xxx | 轮廓灯：xxx | 美颜：xxx | 备注：xxx。用中文150字。';
+  try{var t=await callAIWithPrompt(key,model,prompt,system,400);alert('AI推荐：\
+\
+'+t+'\
+\
+请复制后手动添加。');}catch(e){alert(sanitizeError(e));}
+}
+
+// VIPS
+function renderVips(){
+  document.getElementById('vipList').innerHTML=D.vips.map(function(v){
+    return'<div class="script-card"><div class="sc-title">'+escapeHtml(v.name)+' <span class="chip chip-red">'+escapeHtml(v.platform)+'</span><span style="font-size:12px;color:var(--text2);margin-left:8px">💰 ¥'+Number(v.total_spent||0).toLocaleString()+'</span></div><div class="sc-body">📅 生日:'+escapeHtml(v.birthday||'--')+' | 偏好:'+escapeHtml(v.preferences||'--')+(v.notes?'\
+📝 '+escapeHtml(v.notes):'')+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="generateVipScript('+v.id+')">🤖 AI话术</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteVip('+v.id+')">删除</button></div></div>';
+  }).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无大哥数据</p>';
+}
+function toggleAddVip(){var e=document.getElementById('addVipForm');e.style.display=e.style.display==='none'?'block':'none';}
+async function addVip(){
+  var name=document.getElementById('newVipName').value.trim(),platform=document.getElementById('newVipPlatform').value,spent=+document.getElementById('newVipSpent').value||0,prefs=document.getElementById('newVipPrefs').value.trim(),bday=document.getElementById('newVipBirthday').value,notes=document.getElementById('newVipNotes').value.trim();
+  if(!name)return alert('请填写昵称');
+  try{await callRpc('api_vips_add',{tok:getToken(),name_:name,platform_:platform,total_spent_:spent,preferences_:prefs,birthday_:bday,notes_:notes});}catch(e){return alert(sanitizeError(e));}
+  ['newVipName','newVipSpent','newVipPrefs','newVipBirthday','newVipNotes'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('addVipForm').style.display='none';await loadAllData();renderVips();
+}
+async function deleteVip(id){if(!confirm('删除？'))return;try{await callRpc('api_vips_del',{tok:getToken(),id_:id});await loadAllData();renderVips();}catch(e){alert(sanitizeError(e));}}
+async function generateVipScript(id){
+  var v=D.vips.find(function(x){return x.id===id;});if(!v)return;
+  var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
+  var prompt='大哥：'+JSON.stringify({name:v.name,platform:v.platform,spent:v.total_spent,preferences:v.preferences,birthday:v.birthday,notes:v.notes});
+  var system='你是直播运营专家。根据高价值观众信息，生成200字个性化互动话术：开场问候、话题引导、礼物感谢。亲切自然，用中文。';
+  try{var t=await callAIWithPrompt(key,getAiModel(),prompt,system,500);
+    document.getElementById('vipList').innerHTML+='<div class="script-card" style="margin-top:8px;background:var(--blue-light)"><div class="sc-title">🤖 AI话术（'+escapeHtml(v.name)+'）</div><div class="sc-body">'+escapeHtml(t)+'</div><button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(function(){alert(\'已复制\');})">📋 复制</button></div>';
+  }catch(e){alert(sanitizeError(e));}
+}
+
+// OPPONENTS
+function renderOpponents(){
+  document.getElementById('opponentList').innerHTML=D.opponents.map(function(o){
+    var wr=o.win_count+o.loss_count>0?Math.round(o.win_count/(o.win_count+o.loss_count)*100):'--';
+    return'<div class="script-card"><div class="sc-title">'+escapeHtml(o.name)+' <span class="chip chip-blue">'+escapeHtml(o.platform)+'</span><span style="font-size:12px;color:var(--text2);margin-left:8px">🏆 '+escapeHtml(o.estimated_rank||'?')+' | 风格:'+escapeHtml(o.typical_style||'--')+'</span></div><div class="sc-body">胜率:'+wr+'% (赢'+o.win_count+' 输'+o.loss_count+')'+(o.strategy_notes?'\
+📝 策略:'+escapeHtml(o.strategy_notes):'')+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="generatePKStrategy('+o.id+')">🤖 AI策略</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteOpponent('+o.id+')">删除</button></div></div>';
+  }).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无对手数据</p>';
+}
+function toggleAddOpponent(){var e=document.getElementById('addOpponentForm');e.style.display=e.style.display==='none'?'block':'none';}
+async function addOpponent(){
+  var name=document.getElementById('newOppName').value.trim(),platform=document.getElementById('newOppPlatform').value,rank=document.getElementById('newOppRank').value.trim(),style=document.getElementById('newOppStyle').value.trim(),wins=+document.getElementById('newOppWins').value||0,losses=+document.getElementById('newOppLosses').value||0,strategy=document.getElementById('newOppStrategy').value.trim();
+  if(!name)return alert('请填写对手名称');
+  try{await callRpc('api_opponents_add',{tok:getToken(),name_:name,platform_:platform,estimated_rank_:rank,typical_style_:style,win_count_:wins,loss_count_:losses,strategy_notes_:strategy});}catch(e){return alert(sanitizeError(e));}
+  ['newOppName','newOppRank','newOppStyle','newOppWins','newOppLosses','newOppStrategy'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('addOpponentForm').style.display='none';await loadAllData();renderOpponents();
+}
+async function deleteOpponent(id){if(!confirm('删除？'))return;try{await callRpc('api_opponents_del',{tok:getToken(),id_:id});await loadAllData();renderOpponents();}catch(e){alert(sanitizeError(e));}}
+async function generatePKStrategy(id){
+  var o=D.opponents.find(function(x){return x.id===id;});if(!o)return;
+  var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
+  var prompt='PK对手：'+JSON.stringify({name:o.name,platform:o.platform,rank:o.estimated_rank,style:o.typical_style,wins:o.win_count,losses:o.loss_count,notes:o.strategy_notes});
+  var system='你是直播PK教练。根据对手信息生成200字PK策略：开场策略、拉票话术、礼物节奏、关键反击时机。具体可执行，用中文。';
+  try{var t=await callAIWithPrompt(key,getAiModel(),prompt,system,500);
+    document.getElementById('opponentList').innerHTML+='<div class="script-card" style="margin-top:8px;background:var(--orange-light)"><div class="sc-title">🤖 AI策略(vs '+escapeHtml(o.name)+')</div><div class="sc-body">'+escapeHtml(t)+'</div><button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(function(){alert(\'已复制\');})">📋 复制</button></div>';
+  }catch(e){alert(sanitizeError(e));}
+}
+
+// SCHEDULE
+var scheduleWeekOffset=0;
+function getMonday(d){var day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);return new Date(d.setDate(diff));}
+function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function renderSchedule(){
+  var today=new Date(),monday=getMonday(new Date(today));monday.setDate(monday.getDate()+scheduleWeekOffset*7);
+  var sunday=new Date(monday);sunday.setDate(sunday.getDate()+6);
+  document.getElementById('scheduleWeekLabel').textContent=fmtDate(monday)+' ~ '+fmtDate(sunday);
+  document.getElementById('newScheduleStreamer').innerHTML=D.streamers.map(function(s){return'<option>'+escapeHtml(s.name)+'</option>';}).join('');
+  document.getElementById('newScheduleDate').value=fmtDate(today);
+  var start=fmtDate(monday),end=fmtDate(sunday);
+  var ws=D.schedules.filter(function(s){return s.schedule_date>=start&&s.schedule_date<=end;});
+  ws.sort(function(a,b){return a.schedule_date>b.schedule_date?1:-1;});
+  var sc={scheduled:'chip-blue',done:'chip-green',canceled:'chip-red'};
+  var sl={scheduled:'待播',done:'已完成',canceled:'已取消'};
+  var days={};ws.forEach(function(s){if(!days[s.schedule_date])days[s.schedule_date]=[];days[s.schedule_date].push(s);});
+  var html='';
+  for(var d=new Date(monday);d<=sunday;d.setDate(d.getDate()+1)){
+    var ds=fmtDate(d),dl=['日','一','二','三','四','五','六'][d.getDay()];
+    html+='<div class="schedule-day-header">📅 '+ds+' 周'+dl+'</div>';
+    var items=days[ds]||[];
+    if(!items.length)html+='<p style="font-size:12px;color:var(--text2);padding:4px 12px">无排班</p>';
+    else html+=items.map(function(s){
+      return'<div class="script-card"><div class="sc-title">🎙 '+escapeHtml(s.streamer)+' <span class="chip '+sc[s.status||'scheduled']+'">'+(sl[s.status]||'待播')+'</span><span style="font-size:12px;color:var(--text2);margin-left:8px">🕐 '+escapeHtml(s.time_slot)+'</span></div>'+(s.notes?'<div class="sc-body">'+escapeHtml(s.notes)+'</div>':'')+'<div class="sc-actions"><button class="btn btn-green btn-sm" onclick="updateScheduleStatus('+s.id+',\'done\')" style="padding:3px 8px;font-size:11px">✅ 完成</button> <button class="btn btn-sm" style="background:var(--orange-light);color:var(--orange);padding:3px 8px;font-size:11px" onclick="updateScheduleStatus('+s.id+',\'canceled\')">❌ 取消</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light);padding:3px 8px;font-size:11px" onclick="deleteSchedule('+s.id+')">🗑</button></div></div>';
+    }).join('');
+  }
+  document.getElementById('scheduleList').innerHTML=html;
+}
+function shiftWeek(n){scheduleWeekOffset+=n;renderSchedule();}
+function toggleAddSchedule(){var e=document.getElementById('addScheduleForm');e.style.display=e.style.display==='none'?'block':'none';}
+async function addSchedule(){
+  var sn=document.getElementById('newScheduleStreamer').value,date=document.getElementById('newScheduleDate').value,slot=document.getElementById('newScheduleSlot').value.trim(),notes=document.getElementById('newScheduleNotes').value.trim();
+  if(!sn||!date||!slot)return alert('请填写完整');
+  try{await callRpc('api_schedules_add',{tok:getToken(),schedule_date_:date,streamer_:sn,time_slot_:slot,status_:'scheduled',notes_:notes});}catch(e){return alert(sanitizeError(e));}
+  document.getElementById('newScheduleSlot').value='';document.getElementById('newScheduleNotes').value='';
+  document.getElementById('addScheduleForm').style.display='none';await loadAllData();renderSchedule();
+}
+async function updateScheduleStatus(id,status){try{await callRpc('api_schedules_status',{tok:getToken(),id_:id,status_:status});await loadAllData();renderSchedule();}catch(e){alert(sanitizeError(e));}}
+async function deleteSchedule(id){if(!confirm('删除？'))return;try{await callRpc('api_schedules_del',{tok:getToken(),id_:id});await loadAllData();renderSchedule();}catch(e){alert(sanitizeError(e));}}
+async function suggestScheduleOptimal(){
+  var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
+  var system='你是直播运营排班专家。分析现有排班，给200字优化建议：黄金时段覆盖、主播疲劳度、收入最大化。用中文。';
+  try{var t=await callAIWithPrompt(key,getAiModel(),JSON.stringify(D.schedules)+'|'+JSON.stringify(D.streamers),system,500);
+    document.getElementById('scheduleList').innerHTML='<div class="script-card" style="margin-bottom:12px;background:var(--blue-light)"><div class="sc-title">🤖 AI排班建议</div><div class="sc-body">'+escapeHtml(t)+'</div></div>'+document.getElementById('scheduleList').innerHTML;
+  }catch(e){alert(sanitizeError(e));}
+}
+
+// REVENUE
+var revenueChart=null;
+async function renderRevenue(){
+  document.getElementById('revenueStreamer').innerHTML='<option value="">全部主播</option>'+D.streamers.map(function(s){return'<option value="'+escapeHtml(s.name)+'">'+escapeHtml(s.name)+'</option>';}).join('');
+  var sf=document.getElementById('revenueStreamer').value,start=document.getElementById('revenueStart').value,end=document.getElementById('revenueEnd').value;
+  try{
+    D.revenueSummary=await callRpc('api_revenue_summary',{tok:getToken(),streamer_filter:sf,start_date:start,end_date:end})||[];
+    D.revenueDetail=await callRpc('api_revenue_detail',{tok:getToken(),streamer_filter:sf,start_date:start,end_date:end})||[];
+  }catch(e){alert(sanitizeError(e));return;}
+  var ti=D.revenueSummary.reduce(function(a,x){return a+Number(x.total_income||0);},0),tv=D.revenueSummary.reduce(function(a,x){return a+Number(x.total_views||0);},0),tf=D.revenueSummary.reduce(function(a,x){return a+Number(x.total_fans||0);},0);
+  document.getElementById('revenueSummaryCard').style.display='block';
+  document.getElementById('revenueMetrics').innerHTML='<div class="recap-metric"><div class="rm-val">¥'+Number(ti).toLocaleString()+'</div><div class="rm-label">总收入</div></div><div class="recap-metric"><div class="rm-val">'+Number(tv).toLocaleString()+'</div><div class="rm-label">总场观</div></div><div class="recap-metric"><div class="rm-val">'+Number(tf).toLocaleString()+'</div><div class="rm-label">新增粉丝</div></div>';
+  var ctx=document.getElementById('revenueChart').getContext('2d');
+  if(revenueChart)revenueChart.destroy();
+  if(D.revenueDetail.length>0){
+    document.getElementById('revenueChartCard').style.display='block';
+    revenueChart=new Chart(ctx,{type:'bar',data:{labels:D.revenueDetail.map(function(d){return d.date.slice(5);}),datasets:[{label:'收入(元)',data:D.revenueDetail.map(function(d){return d.income;}),backgroundColor:'#e74c3c'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  }else{document.getElementById('revenueChartCard').style.display='none';}
+  document.getElementById('revenueByStreamerCard').style.display=D.revenueSummary.length>0?'block':'none';
+  document.getElementById('revenueByStreamer').innerHTML=D.revenueSummary.map(function(s){
+    var wr=s.pk_total>0?Math.round(s.pk_wins/s.pk_total*100)+'%':'--';
+    return'<div class="script-card"><div class="sc-title">🎙 '+escapeHtml(s.streamer)+' <span style="color:var(--accent);font-weight:700">¥'+Number(s.total_income||0).toLocaleString()+'</span></div><div class="sc-body">📅 '+escapeHtml(s.date_min)+' ~ '+escapeHtml(s.date_max)+' | 场次:'+s.recaps_count+' | 场观:'+Number(s.total_views||0).toLocaleString()+' | 粉:'+Number(s.total_fans||0)+' | PK胜率:'+wr+'</div></div>';
+  }).join('');
+}
 
 // LIGHTING
 function renderLights(){
