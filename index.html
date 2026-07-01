@@ -551,10 +551,11 @@ function copyAiResult(){navigator.clipboard.writeText(_aiResultText).then(functi
 var ALL_MODULES=['scripts','lighting','streamers','recap','worklog','vips','opponents','schedule','revenue'];
 var MOD_LABELS={scripts:'话术',lighting:'灯光',streamers:'主播',recap:'复盘',worklog:'日志',vips:'大哥',opponents:'PK',schedule:'排班',revenue:'收入'};
 function renderUsers(){
-  var sel='';ALL_MODULES.forEach(function(m){sel+='<button class="chip chip-green" style="cursor:pointer" id="um_'+m+'" onclick="var t=document.getElementById('um_'+m+'');if(t.classList.contains('chip-green')){t.classList.remove('chip-green');t.style.opacity=0.3}else{t.classList.add('chip-green');t.style.opacity=1}">'+MOD_LABELS[m]+'</button>';});
-  document.getElementById('newUserModules').innerHTML=sel+'<span style="font-size:11px;color:var(--text2);margin-left:4px">点击灰色=不给看</span>';
+  var sel='';ALL_MODULES.forEach(function(m){sel+='<button class="chip chip-green" style="cursor:pointer" id="um_'+m+'" onclick="toggleModule(''+m+'')">'+MOD_LABELS[m]+'</button>';});
+  document.getElementById('newUserModules').innerHTML=sel+' <span style="font-size:11px;color:var(--text2)">点灰=不给看</span>';
 }
-async function toggleAddUser(){var e=document.getElementById('addUserForm');e.style.display=e.style.display==='none'?'block':'none';renderUsers();}
+function toggleModule(m){var t=document.getElementById('um_'+m);if(t.classList.contains('chip-green')){t.classList.remove('chip-green');t.style.opacity=0.3}else{t.classList.add('chip-green');t.style.opacity=1}}
+function toggleAddUser(){var e=document.getElementById('addUserForm');e.style.display=e.style.display==='none'?'block':'none';renderUsers();}
 async function addUser(){
   var un=document.getElementById('newUserName').value.trim(),pw=document.getElementById('newUserPw').value,role=document.getElementById('newUserRole').value,edit=document.getElementById('newUserEdit').checked;
   if(!un||!pw)return alert('请填写完整');
@@ -562,12 +563,20 @@ async function addUser(){
   try{await callRpc('api_users_add',{tok:getToken(),username_:un,password_:pw,role_:role,permissions_:{modules:mods,can_edit:edit}});}catch(e){return alert(sanitizeError(e));}
   document.getElementById('addUserForm').style.display='none';loadUsers();
 }
-async function loadUsers(){
-  try{var users=await callRpc('api_users_list',{tok:getToken()});
-    document.getElementById('userList').innerHTML=users.map(function(u){var ps=u.permissions||{},mods=ps.modules||[],edit=ps.can_edit;var labels=mods.map(function(m){return MOD_LABELS[m]||m;}).join('、');return'<div class="script-card"><div class="sc-title">'+escapeHtml(u.username)+' <span class="chip chip-red">'+escapeHtml(u.role)+'</span> <span class="chip chip-green">'+(edit?'可编辑':'只读')+'</span></div><div class="sc-body">模块：'+(mods.length?labels:'无')+'</div><div class="sc-actions">'+(u.username!=='admin'?'<button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteUser('+u.id+')">删除</button>':'<span style="font-size:12px;color:var(--text2)">管理员不可删除</span>')+'</div></div>';}).join('')||'<p style="text-align:center;color:var(--text2)">加载中...</p>';
-  }catch(e){}
+function loadUsers(){
+  callRpc('api_users_list',{tok:getToken()}).then(function(users){
+    var html='';
+    users.forEach(function(u){
+      var ps=u.permissions||{},mods=ps.modules||[],edit=ps.can_edit;
+      var labels=mods.map(function(m){return MOD_LABELS[m]||m;}).join('、');
+      html+='<div class="script-card"><div class="sc-title">'+escapeHtml(u.username)+' <span class="chip chip-red">'+escapeHtml(u.role)+'</span> <span class="chip chip-green">'+(edit?'可编辑':'只读')+'</span></div><div class="sc-body">模块：'+(labels||'无')+'</div>';
+      if(u.username!=='admin')html+='<div class="sc-actions"><button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteUser('+u.id+')">删除</button></div>';
+      else html+='<div class="sc-actions"><span style="font-size:12px;color:var(--text2)">管理员不可删除</span></div>';
+      html+='</div>';
+    });
+    document.getElementById('userList').innerHTML=html||'<p style="text-align:center;color:var(--text2)">暂无用户</p>';
+  }).catch(function(){});
 }
-
 // AUDIT
 async function renderAudit(){
   try{var logs=await callRpc('api_audit_list',{tok:getToken(),limit_:200});
