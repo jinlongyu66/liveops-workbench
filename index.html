@@ -544,35 +544,44 @@ async function callAIWithPrompt(apiKey,model,prompt,system,maxTokens){
   var d=await resp.json();return model==='claude'?d.content[0].text:d.choices[0].message.content;
 }
 
-function copyAiResult(){navigator.clipboard.writeText(_aiResultText).then(function(){alert('已复制');});}
+function copyAiResult(){
+  if(!_aiResultText)return alert('暂无内容');
+  navigator.clipboard.writeText(_aiResultText).then(function(){alert('已复制');}).catch(function(){alert('复制失败');});
+}
 function applyAiResult(){
-  var t=_aiResultText;if(!t)return;
-  var text=t.replace(/\*\*/g,'').replace(/【|】/g,'');
+  var t=_aiResultText;if(!t)return alert('暂无内容');
   if(aiPreset==='script'){
-    // Parse: 标题：xxx or 标题: xxx
-    var title='',body='';
-    var tm=t.match(/标题[：:]\\s*(.+?)(?:\\n|正文|$)/);
-    var bm=t.match(/正文[：:]\\s*([\\s\\S]+)/);
-    if(tm)title=tm[1].trim();if(bm)body=bm[1].trim();
-    if(!title){var lines=t.split('\\n').filter(function(l){return l.trim();});title=lines[0]||'';body=lines.slice(1).join('\\n')||title;}
+    var lines=t.split('\n'),title='',body='';
+    for(var i=0;i<lines.length;i++){
+      var l=lines[i].trim();if(!l)continue;
+      var m=l.match(/^(.+?)[：:]s*(.+)/);
+      if(m&&(m[1].indexOf('标题')>=0||m[1].indexOf('title')>=0))title=m[2];
+      else if(m&&(m[1].indexOf('正文')>=0||m[1].indexOf('body')>=0))body=m[2];
+      else if(!title)title=l;else body+='\n'+l;
+    }
+    if(!title&&lines.length>0)title=lines[0].trim();
+    if(!body)body=lines.slice(1).join('\n').trim()||title;
     document.getElementById('newScriptCat').value='开场';
     document.getElementById('newScriptTitle').value=title;
     document.getElementById('newScriptBody').value=body;
     document.getElementById('addScriptForm').style.display='block';
-    switchPage('scripts');
+    switchPage('scripts');alert('已填入话术表单');
   }else if(aiPreset==='lighting'){
-    var fields={main:'',fill:'',rim:'',beauty:'',note:'',name:'',style:''};
-    var map={主灯:'main',辅灯:'fill',轮廓灯:'rim',美颜:'beauty',备注:'note',名称:'name',风格:'style'};
-    for(var k in map){var m=t.match(new RegExp(k+'[：:]\\\\s*(.+)','i'));if(m)fields[map[k]]=m[1].trim();}
-    document.getElementById('newLightName').value=fields.name||'AI推荐';
-    document.getElementById('newLightStyle').value=fields.style||'';
-    document.getElementById('newLightMain').value=fields.main||'';
-    document.getElementById('newLightFill').value=fields.fill||'';
-    document.getElementById('newLightRim').value=fields.rim||'';
-    document.getElementById('newLightBeauty').value=fields.beauty||'';
-    document.getElementById('newLightNote').value=fields.note||'';
+    var lines2=t.split('\n'),fills={main:'',fill:'',rim:'',beauty:'',note:'',name:'',style:''};
+    var map2={'主灯':'main','辅灯':'fill','轮廓灯':'rim','美颜':'beauty','备注':'note','名称':'name','风格':'style'};
+    for(var i2=0;i2<lines2.length;i2++){
+      var l2=lines2[i2].trim();if(!l2)continue;
+      for(var k in map2){if(l2.indexOf(k)>=0){fills[map2[k]]=l2.replace(/^.+、|^.+：|^.+:\s*/,'').trim();break;}}
+    }
+    document.getElementById('newLightName').value=fills.name||'AI推荐';
+    document.getElementById('newLightStyle').value=fills.style||'';
+    document.getElementById('newLightMain').value=fills.main||'';
+    document.getElementById('newLightFill').value=fills.fill||'';
+    document.getElementById('newLightRim').value=fills.rim||'';
+    document.getElementById('newLightBeauty').value=fills.beauty||'';
+    document.getElementById('newLightNote').value=fills.note||'';
     document.getElementById('addLightForm').style.display='block';
-    switchPage('lighting');
+    switchPage('lighting');alert('已填入灯光表单');
   }else{alert('当前模式不支持一键填写，请手动复制粘贴');}
 }
 
