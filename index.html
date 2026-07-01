@@ -196,7 +196,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div class="form-group"><label>需求描述</label><textarea id="aiPrompt" rows="3" placeholder="例如：帮我写一段开场感谢话术，风格轻松幽默..."></textarea></div>
     <button class="btn btn-primary" onclick="runAI()">🤖 生成</button>
     <div id="aiResult" style="margin-top:12px;padding:12px;background:var(--bg);border-radius:8px;display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>AI 回复</strong><button class="btn btn-outline btn-sm" onclick="copyAiResult()">📋 复制</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>AI 回复</strong><div style="display:flex;gap:6px"><button class="btn btn-outline btn-sm" onclick="applyAiResult()">📥 应用</button><button class="btn btn-outline btn-sm" onclick="copyAiResult()">📋 复制</button></div></div>
       <div id="aiResultText" style="font-size:14px;line-height:1.8;white-space:pre-wrap"></div></div></div>
 </div>
 
@@ -545,6 +545,36 @@ async function callAIWithPrompt(apiKey,model,prompt,system,maxTokens){
 }
 
 function copyAiResult(){navigator.clipboard.writeText(_aiResultText).then(function(){alert('已复制');});}
+function applyAiResult(){
+  var t=_aiResultText;if(!t)return;
+  var text=t.replace(/\*\*/g,'').replace(/【|】/g,'');
+  if(aiPreset==='script'){
+    // Parse: 标题：xxx or 标题: xxx
+    var title='',body='';
+    var tm=t.match(/标题[：:]\\s*(.+?)(?:\\n|正文|$)/);
+    var bm=t.match(/正文[：:]\\s*([\\s\\S]+)/);
+    if(tm)title=tm[1].trim();if(bm)body=bm[1].trim();
+    if(!title){var lines=t.split('\\n').filter(function(l){return l.trim();});title=lines[0]||'';body=lines.slice(1).join('\\n')||title;}
+    document.getElementById('newScriptCat').value='开场';
+    document.getElementById('newScriptTitle').value=title;
+    document.getElementById('newScriptBody').value=body;
+    document.getElementById('addScriptForm').style.display='block';
+    switchPage('scripts');
+  }else if(aiPreset==='lighting'){
+    var fields={main:'',fill:'',rim:'',beauty:'',note:'',name:'',style:''};
+    var map={主灯:'main',辅灯:'fill',轮廓灯:'rim',美颜:'beauty',备注:'note',名称:'name',风格:'style'};
+    for(var k in map){var m=t.match(new RegExp(k+'[：:]\\\\s*(.+)','i'));if(m)fields[map[k]]=m[1].trim();}
+    document.getElementById('newLightName').value=fields.name||'AI推荐';
+    document.getElementById('newLightStyle').value=fields.style||'';
+    document.getElementById('newLightMain').value=fields.main||'';
+    document.getElementById('newLightFill').value=fields.fill||'';
+    document.getElementById('newLightRim').value=fields.rim||'';
+    document.getElementById('newLightBeauty').value=fields.beauty||'';
+    document.getElementById('newLightNote').value=fields.note||'';
+    document.getElementById('addLightForm').style.display='block';
+    switchPage('lighting');
+  }else{alert('当前模式不支持一键填写，请手动复制粘贴');}
+}
 
 
 // USERS
