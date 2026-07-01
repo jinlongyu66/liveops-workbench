@@ -457,7 +457,7 @@ async function loadAllData(){
 var currentPage='scripts';
 function switchPage(name){
   currentPage=name;if(!loggedIn)return;
-  if(!hasModule(name)&&name!=='settings'&&name!=='users'&&name!=='audit'&&name!=='ai'){alert('无权限访问此模块');return;}
+  if(!hasModule(name)&&name!=='settings'&&name!=='users'&&name!=='audit'){alert('无权限访问此模块');return;}
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.top-nav button,.bottom-nav button').forEach(function(b){b.classList.remove('active');});
   var pg=document.getElementById('page-'+name);if(pg)pg.classList.add('active');
@@ -576,8 +576,8 @@ function applyAiResult(){
 
 
 // USERS
-var ALL_MODULES=['scripts','lighting','streamers','recap','worklog','vips','opponents','schedule','revenue'];
-var MOD_LABELS={scripts:'话术',lighting:'灯光',streamers:'主播',recap:'复盘',worklog:'日志',vips:'大哥',opponents:'PK',schedule:'排班',revenue:'收入'};
+var ALL_MODULES=['scripts','lighting','streamers','recap','worklog','vips','opponents','schedule','revenue','ai'];
+var MOD_LABELS={scripts:'话术',lighting:'灯光',streamers:'主播',recap:'复盘',worklog:'日志',vips:'大哥',opponents:'PK',schedule:'排班',revenue:'收入',ai:'AI'};
 var editUserId=null;
 function renderUsers(){
   loadUsers();
