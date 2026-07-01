@@ -176,9 +176,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 </div>
 
 <div class="page" id="page-settings">
-  <div class="card"><h2>⚙️ 设置</h2>
-    <div class="form-group"><label>修改密码</label><input type="password" id="newPassword" placeholder="新密码（至少4位）"></div>
+  <div class="card"><h2>🔒 修改密码</h2>
+    <div class="form-group"><label>旧密码</label><input type="password" id="oldPassword" placeholder="输入当前密码"></div>
+    <div class="form-group"><label>新密码</label><input type="password" id="newPassword" placeholder="新密码（至少4位）"></div>
     <button class="btn btn-primary" onclick="changePassword()">🔒 修改密码</button></div>
+  <div class="card"><h2>💾 数据备份</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">导出所有数据为 JSON 文件。网站出问题时可重新导入恢复。</p>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" onclick="exportBackup()" style="flex:1">📤 导出备份</button>
+      <button class="btn btn-outline" onclick="document.getElementById('importFileInput').click()" style="flex:1">📥 导入恢复</button>
+    </div>
+    <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importBackup(this)">
+    <p id="importStatus" style="font-size:12px;color:var(--text2);margin-top:8px"></p></div>
   <div class="card"><button class="btn btn-outline" onclick="logout()" style="width:100%;color:var(--accent);border-color:var(--accent)">🚪 退出登录</button></div>
 </div>
 
@@ -234,10 +243,47 @@ function forceLogout(){sessionStorage.removeItem('liveops_token');loggedIn=false
 async function logout(){try{if(getToken())await callRpc('logout_fn',{});}catch(e){}sessionStorage.removeItem('liveops_token');location.reload();}
 
 async function changePassword(){
-  var np=document.getElementById('newPassword').value.trim();
-  if(!np)return alert('请输入新密码');if(np.length<4)return alert('密码至少4位');
-  try{var ok=await callRpc('change_pw',{tok:getToken(),new_password:np});if(ok)alert('✅ 密码已修改！');else alert('修改失败');document.getElementById('newPassword').value='';}
+  var op=document.getElementById('oldPassword').value.trim(),np=document.getElementById('newPassword').value.trim();
+  if(!op)return alert('请输入旧密码');if(!np)return alert('请输入新密码');if(np.length<4)return alert('密码至少4位');if(op===np)return alert('新旧密码不能相同');
+  try{var ok=await callRpc('change_pw',{tok:getToken(),old_password:op,new_password:np});if(ok)alert('✅ 密码已修改！');else alert('❌ 旧密码错误');document.getElementById('oldPassword').value='';document.getElementById('newPassword').value='';}
   catch(e){alert(sanitizeError(e));}
+}
+
+async function exportBackup(){
+  var tok=getToken();
+  try{
+    var data=await Promise.all([
+      callRpc('api_scripts_list',{tok:tok}),
+      callRpc('api_lighting_list',{tok:tok}),
+      callRpc('api_streamers_list',{tok:tok}),
+      callRpc('api_recaps_list',{tok:tok}),
+      callRpc('api_work_logs_list',{tok:tok})
+    ]);
+    var backup={scripts:data[0],lighting:data[1],streamers:data[2],recaps:data[3],work_logs:data[4],exported_at:new Date().toISOString()};
+    var blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+    alert('✅ 已导出');
+  }catch(e){alert(sanitizeError(e));}
+}
+
+function importBackup(input){
+  var f=input.files[0];if(!f)return;
+  var reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      var backup=JSON.parse(e.target.result);var tok=getToken(),count=0;
+      var s=document.getElementById('importStatus');
+      s.textContent='⏳ 导入中...';
+      if(backup.scripts)for(var i=0;i<backup.scripts.length;i++){try{await callRpc('api_scripts_add',{tok:tok,cat_:backup.scripts[i].cat||'',title_:backup.scripts[i].title||'',body_:backup.scripts[i].body||''});count++;}catch(e){}}
+      if(backup.lighting)for(var i=0;i<backup.lighting.length;i++){try{await callRpc('api_lighting_add',{tok:tok,name_:backup.lighting[i].name||'',style_:backup.lighting[i].style||'',main_:backup.lighting[i].main||'',fill_:backup.lighting[i].fill||'',rim_:backup.lighting[i].rim||'',beauty_:backup.lighting[i].beauty||'',note_:backup.lighting[i].note||''});count++;}catch(e){}}
+      if(backup.streamers)for(var i=0;i<backup.streamers.length;i++){try{await callRpc('api_streamers_add',{tok:tok,name_:backup.streamers[i].name||'',platform_:backup.streamers[i].platform||'',note_:backup.streamers[i].note||''});count++;}catch(e){}}
+      if(backup.recaps)for(var i=0;i<backup.recaps.length;i++){try{await callRpc('api_recaps_save',{tok:tok,data_:backup.recaps[i]});count++;}catch(e){}}
+      if(backup.work_logs)for(var i=0;i<backup.work_logs.length;i++){try{await callRpc('api_work_logs_add',{tok:tok,date_:backup.work_logs[i].date||'',time_:backup.work_logs[i].time||'',content_:backup.work_logs[i].content||''});count++;}catch(e){}}
+      s.textContent='✅ 导入完成：'+count+' 条';await loadAllData();
+    }catch(err){document.getElementById('importStatus').textContent='❌ 文件格式错误';}
+  };
+  reader.readAsText(f);
 }
 
 async function checkSession(){
