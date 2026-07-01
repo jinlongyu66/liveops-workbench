@@ -317,7 +317,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 function escapeHtml(str) {
   if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-function sanitizeError(e){var m=(e.message||String(e)).slice(0,100);var l=m.toLowerCase();if(l.includes('fetch')||l.includes('network')||l.includes('failed'))return'网络连接失败，请检查网络';if(l.includes('401')||l.includes('403')||l.includes('unauthorized')||l.includes('jwt')){forceLogout();return'会话过期，请重新登录';}return'操作失败: '+m;}
+function sanitizeError(e){var m=(e.message||String(e)).slice(0,100);var l=m.toLowerCase();if(l.includes('fetch')||l.includes('network')||l.includes('failed'))return'网络连接失败，请检查网络';if(l.includes('401')||l.includes('403')||l.includes('jwt')){forceLogout();return'会话过期，请重新登录';}return'操作失败: '+m;}
 
 var SB_URL='https://xyeecqpbaxzjrbukipyi.supabase.co';
 var SB_KEY='sb_publishable_vtschTBXX1hOhJ0BYLbOag_jsU2yL4m';
@@ -341,7 +341,7 @@ function applyPermissions(){
   });
   // If not admin and can't edit, inject CSS to hide all action buttons
   if(!edit&&!isA){
-    var style=document.createElement('style');style.id='viewer-mode';style.textContent='.sc-actions,.btn-primary,.btn-green{display:none!important}[onclick*=toggleAdd],[onclick*=addVip],[onclick*=addOpp],[onclick*=addSchedule],[onclick*=addStreamer],[onclick*=addLight],[onclick*=addScript],[onclick*=addWorkLog],[onclick*=saveRecapDirect]{display:none!important}';
+    var style=document.createElement('style');style.id='viewer-mode';style.textContent='.sc-actions button{display:none!important}#addScriptForm button,#addLightForm button,#addStreamerForm button,#addVipForm button,#addOpponentForm button,#addScheduleForm button{display:none!important}button[onclick*=saveRecapDirect],button[onclick*=saveRecap],button[onclick*=addScript],button[onclick*=addLight],button[onclick*=addStreamer],button[onclick*=addVip],button[onclick*=addOpponent],button[onclick*=addSchedule],button[onclick*=addWorkLog],button[onclick*=toggleAdd]{display:none!important}';
     document.head.appendChild(style);
   }else{
     var old=document.getElementById('viewer-mode');if(old)old.remove();
