@@ -322,6 +322,18 @@ function sanitizeError(e){var m=(e.message||String(e)).slice(0,100);var l=m.toLo
 var SB_URL='https://xyeecqpbaxzjrbukipyi.supabase.co';
 var SB_KEY='sb_publishable_vtschTBXX1hOhJ0BYLbOag_jsU2yL4m';
 
+
+function stripButtons(containerId){
+  if(!window._canEdit&&!window._isAdmin){
+    setTimeout(function(){
+      var el=document.getElementById(containerId);if(!el)return;
+      var btns=el.querySelectorAll('.sc-actions,.btn-primary,.btn-green,[onclick*=delete],[onclick*=edit],[onclick*=save],[onclick*=toggleAdd]');
+      btns.forEach(function(b){b.remove();});
+      var adds=el.querySelectorAll('[onclick*=addScript],[onclick*=addLight],[onclick*=addStreamer],[onclick*=addVip],[onclick*=addOpp],[onclick*=addSchedule],[onclick*=addWorkLog],[onclick*=saveRecap]');
+      adds.forEach(function(b){b.remove();});
+    },100);
+  }
+}
 function getToken(){return sessionStorage.getItem('liveops_token')||'';}
 function getUser(){try{return JSON.parse(sessionStorage.getItem('liveops_user')||'{}');}catch(e){return{};}}
 function isAdmin(){return getUser().role==='admin';}
@@ -341,7 +353,7 @@ function applyPermissions(){
   if(!edit&&!isA){
     // Force hide all edit/add/delete elements via aggressive CSS
     var s=document.createElement('style');s.id='viewer-lock';
-    s.textContent='.sc-actions{display:none!important}.btn-primary{display:none!important}.btn-green{display:none!important}.btn-danger{display:none!important}[onclick*=addScript]{display:none!important}[onclick*=addLight]{display:none!important}[onclick*=addStreamer]{display:none!important}[onclick*=addVip]{display:none!important}[onclick*=addOpp]{display:none!important}[onclick*=addSchedule]{display:none!important}[onclick*=addWorkLog]{display:none!important}[onclick*=saveRecapDirect]{display:none!important}[onclick*=saveRecap]{display:none!important}[onclick*=toggleAdd]{display:none!important}';
+    s.textContent='.sc-actions button{display:none!important}button[onclick*=toggleAdd]{display:none!important}button[onclick*=addScript]{display:none!important}button[onclick*=addLight]{display:none!important}button[onclick*=addStreamer]{display:none!important}button[onclick*=addVip]{display:none!important}button[onclick*=addOpp]{display:none!important}button[onclick*=addSchedule]{display:none!important}button[onclick*=addWorkLog]{display:none!important}button[onclick*=addUser]{display:none!important}button[onclick*=saveRecapDirect]{display:none!important}button[onclick*=saveRecap]{display:none!important}button[onclick*=editScript]{display:none!important}button[onclick*=editLight]{display:none!important}button[onclick*=editStreamer]{display:none!important}button[onclick*=editVip]{display:none!important}button[onclick*=editOpp]{display:none!important}button[onclick*=deleteScript]{display:none!important}button[onclick*=deleteLight]{display:none!important}button[onclick*=deleteStreamer]{display:none!important}button[onclick*=deleteVip]{display:none!important}button[onclick*=deleteOpp]{display:none!important}button[onclick*=deleteSchedule]{display:none!important}button[onclick*=deleteWorkLog]{display:none!important}button[onclick*=deleteUser]{display:none!important}';
     var old=document.getElementById('viewer-lock');if(old)old.remove();
     document.head.appendChild(s);
   }else{
@@ -496,7 +508,7 @@ function renderScripts(){
   document.getElementById('scriptList').innerHTML=list.map(function(s){return'<div class="script-card"><div class="sc-title">'+escapeHtml(s.title)+'<span class="chip chip-red">'+escapeHtml(s.cat)+'</span></div><div class="sc-body">'+escapeHtml(s.body)+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="copyScript('+s.id+')">📋</button> <button class="btn btn-sm" style="color:var(--blue)" onclick="editScript('+s.id+')">✏️</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteScript('+s.id+')">🗑</button></div></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无话术</p>';
 }
 function toggleAddScript(){if(!canEdit())return alert("只读");editId=null;var e=document.getElementById('addScriptForm');e.style.display=e.style.display==='none'?'block':'none';}
-function editScript(id){var s=D.scripts.find(function(x){return x.id===id;});if(!s)return;editId=id;document.getElementById("newScriptCat").value=s.cat;document.getElementById("newScriptTitle").value=s.title;document.getElementById("newScriptBody").value=s.body;document.getElementById("addScriptForm").style.display="block";}
+stripButtons("scriptList");function editScript(id){var s=D.scripts.find(function(x){return x.id===id;});if(!s)return;editId=id;document.getElementById("newScriptCat").value=s.cat;document.getElementById("newScriptTitle").value=s.title;document.getElementById("newScriptBody").value=s.body;document.getElementById("addScriptForm").style.display="block";}
 async function addScript(){
   if(!canEdit())return alert('无编辑权限');
   var cat=document.getElementById('newScriptCat').value,title=document.getElementById('newScriptTitle').value.trim(),body=document.getElementById('newScriptBody').value.trim();
@@ -663,7 +675,7 @@ function renderVips(){
   }).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无大哥数据</p>';
 }
 function toggleAddVip(){if(!canEdit())return alert("只读");editId=null;var e=document.getElementById('addVipForm');e.style.display=e.style.display==='none'?'block':'none';}
-function editVip(id){var v=D.vips.find(function(x){return x.id===id;});if(!v)return;editId=id;document.getElementById("newVipName").value=v.name;document.getElementById("newVipPlatform").value=v.platform;document.getElementById("newVipSpent").value=v.total_spent||0;document.getElementById("newVipPrefs").value=v.preferences||"";document.getElementById("newVipBirthday").value=v.birthday||"";document.getElementById("newVipNotes").value=v.notes||"";document.getElementById("addVipForm").style.display="block";}
+stripButtons("vipList");function editVip(id){var v=D.vips.find(function(x){return x.id===id;});if(!v)return;editId=id;document.getElementById("newVipName").value=v.name;document.getElementById("newVipPlatform").value=v.platform;document.getElementById("newVipSpent").value=v.total_spent||0;document.getElementById("newVipPrefs").value=v.preferences||"";document.getElementById("newVipBirthday").value=v.birthday||"";document.getElementById("newVipNotes").value=v.notes||"";document.getElementById("addVipForm").style.display="block";}
 async function addVip(){
   var name=document.getElementById('newVipName').value.trim(),platform=document.getElementById('newVipPlatform').value,spent=+document.getElementById('newVipSpent').value||0,prefs=document.getElementById('newVipPrefs').value.trim(),bday=document.getElementById('newVipBirthday').value,notes=document.getElementById('newVipNotes').value.trim();
   if(!name)return alert('请填写昵称');
@@ -691,7 +703,7 @@ function renderOpponents(){
   }).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无对手数据</p>';
 }
 function toggleAddOpponent(){if(!canEdit())return alert("只读");editId=null;var e=document.getElementById('addOpponentForm');e.style.display=e.style.display==='none'?'block':'none';}
-function editOpponent(id){var o=D.opponents.find(function(x){return x.id===id;});if(!o)return;editId=id;document.getElementById("newOppName").value=o.name;document.getElementById("newOppPlatform").value=o.platform;document.getElementById("newOppRank").value=o.estimated_rank||"";document.getElementById("newOppStyle").value=o.typical_style||"";document.getElementById("newOppWins").value=o.win_count||0;document.getElementById("newOppLosses").value=o.loss_count||0;document.getElementById("newOppStrategy").value=o.strategy_notes||"";document.getElementById("addOpponentForm").style.display="block";}
+stripButtons("opponentList");function editOpponent(id){var o=D.opponents.find(function(x){return x.id===id;});if(!o)return;editId=id;document.getElementById("newOppName").value=o.name;document.getElementById("newOppPlatform").value=o.platform;document.getElementById("newOppRank").value=o.estimated_rank||"";document.getElementById("newOppStyle").value=o.typical_style||"";document.getElementById("newOppWins").value=o.win_count||0;document.getElementById("newOppLosses").value=o.loss_count||0;document.getElementById("newOppStrategy").value=o.strategy_notes||"";document.getElementById("addOpponentForm").style.display="block";}
 async function addOpponent(){
   var name=document.getElementById('newOppName').value.trim(),platform=document.getElementById('newOppPlatform').value,rank=document.getElementById('newOppRank').value.trim(),style=document.getElementById('newOppStyle').value.trim(),wins=+document.getElementById('newOppWins').value||0,losses=+document.getElementById('newOppLosses').value||0,strategy=document.getElementById('newOppStrategy').value.trim();
   if(!name)return alert('请填写对手名称');
@@ -794,7 +806,7 @@ function renderLights(){
   document.getElementById('lightList').innerHTML=D.lighting.map(function(l){return'<div class="light-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong>'+escapeHtml(l.name)+'</strong><span class="chip chip-blue">'+escapeHtml(l.style||'')+'</span></div><div style="font-size:13px;color:var(--text2);line-height:1.6">🔆'+escapeHtml(l.main||'')+' 💡'+escapeHtml(l.fill||'')+' 🔦'+escapeHtml(l.rim||'')+' ✨'+escapeHtml(l.beauty||'')+(l.note?' 📝'+escapeHtml(l.note):'')+'</div><button class="btn btn-outline btn-sm" onclick="editLight('+l.id+')" style=\"margin-top:8px;color:var(--blue)\">✏️</button> <button class=\"btn btn-outline btn-sm\" onclick=\"deleteLight('+l.id+')\" style=\"margin-top:8px\">删除</button></div>';}).join('')||'<p style=\"text-align:center;color:var(--text2);padding:20px\">暂无方案</p>';
 }
 function toggleAddLight(){if(!canEdit())return alert("只读");editId=null;var e=document.getElementById('addLightForm');e.style.display=e.style.display==='none'?'block':'none';}
-function editLight(id){var l=D.lighting.find(function(x){return x.id===id;});if(!l)return;editId=id;document.getElementById("newLightName").value=l.name||"";document.getElementById("newLightStyle").value=l.style||"";document.getElementById("newLightMain").value=l.main||"";document.getElementById("newLightFill").value=l.fill||"";document.getElementById("newLightRim").value=l.rim||"";document.getElementById("newLightBeauty").value=l.beauty||"";document.getElementById("newLightNote").value=l.note||"";document.getElementById("addLightForm").style.display="block";}
+stripButtons("lightList");function editLight(id){var l=D.lighting.find(function(x){return x.id===id;});if(!l)return;editId=id;document.getElementById("newLightName").value=l.name||"";document.getElementById("newLightStyle").value=l.style||"";document.getElementById("newLightMain").value=l.main||"";document.getElementById("newLightFill").value=l.fill||"";document.getElementById("newLightRim").value=l.rim||"";document.getElementById("newLightBeauty").value=l.beauty||"";document.getElementById("newLightNote").value=l.note||"";document.getElementById("addLightForm").style.display="block";}
 async function addLight(){
   var item={tok:getToken(),name_:document.getElementById('newLightName').value.trim(),style_:document.getElementById('newLightStyle').value.trim(),main_:document.getElementById('newLightMain').value.trim(),fill_:document.getElementById('newLightFill').value.trim(),rim_:document.getElementById('newLightRim').value.trim(),beauty_:document.getElementById('newLightBeauty').value.trim(),note_:document.getElementById('newLightNote').value.trim()};
   if(!item.name_)return alert('请填写方案名称');
@@ -810,7 +822,7 @@ function renderStreamers(){
   document.getElementById('streamerList').innerHTML=D.streamers.map(function(s){return'<div class="streamer-card"><div style="display:flex;justify-content:space-between"><strong>'+escapeHtml(s.name)+'</strong><span class="chip chip-green">'+escapeHtml(s.platform||'')+'</span></div><div style="font-size:13px;color:var(--text2);margin-top:4px">'+escapeHtml(s.note||'')+' · '+escapeHtml(s.start_date||'')+'</div><button class="btn btn-outline btn-sm" onclick="editStreamer('+s.id+')" style=\"margin-top:8px;color:var(--blue)\">✏️</button> <button class=\"btn btn-outline btn-sm\" onclick=\"deleteStreamer('+s.id+')\" style=\"margin-top:8px\">删除</button></div>';}).join('')||'<p style=\"text-align:center;color:var(--text2);padding:20px\">暂无主播</p>';
 }
 function toggleAddStreamer(){if(!canEdit())return alert("只读");editId=null;var e=document.getElementById('addStreamerForm');e.style.display=e.style.display==='none'?'block':'none';}
-function editStreamer(id){var s=D.streamers.find(function(x){return x.id===id;});if(!s)return;editId=id;document.getElementById("newStreamerName").value=s.name;document.getElementById("newStreamerPlatform").value=s.platform;document.getElementById("newStreamerNote").value=s.note||"";document.getElementById("addStreamerForm").style.display="block";}
+stripButtons("streamerList");function editStreamer(id){var s=D.streamers.find(function(x){return x.id===id;});if(!s)return;editId=id;document.getElementById("newStreamerName").value=s.name;document.getElementById("newStreamerPlatform").value=s.platform;document.getElementById("newStreamerNote").value=s.note||"";document.getElementById("addStreamerForm").style.display="block";}
 async function addStreamer(){
   var name=document.getElementById('newStreamerName').value.trim(),platform=document.getElementById('newStreamerPlatform').value,note=document.getElementById('newStreamerNote').value.trim();
   if(!name)return alert('请填写主播昵称');
@@ -923,7 +935,7 @@ function renderWorkLog(){
   document.getElementById('workLogList').innerHTML=logs.map(function(l){return'<div class="worklog-entry"><div class="wl-time">'+escapeHtml(l.time)+'</div><div class="wl-content">'+escapeHtml(l.content)+'</div><button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="editWorkLog('+l.id+')">✏️</button> <button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="deleteWorkLog('+l.id+')">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
 }
 function editWorkLog(id){var logs=D.workLogs;var found=null;for(var d in logs){found=logs[d].find(function(l){return l.id===id;});if(found)break;}if(!found)return;editId=id;document.getElementById("wlTime").value=found.time;document.getElementById("wlContent").value=found.content;}
-async function addWorkLog(){
+async stripButtons("workLogList");function addWorkLog(){
   var td=today(),time=document.getElementById('wlTime').value,content=document.getElementById('wlContent').value.trim();
   if(!time||!content)return;
   if(editId){try{await callRpc('api_work_logs_update',{tok:getToken(),id_:editId,content_:content});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_work_logs_add',{tok:getToken(),date_:td,time_:time,content_:content});}catch(e){return alert(sanitizeError(e));}}
