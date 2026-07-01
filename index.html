@@ -617,14 +617,15 @@ async function renderAudit(){
 function renderVips(){
   document.getElementById('vipList').innerHTML=D.vips.map(function(v){
     return'<div class="script-card"><div class="sc-title">'+escapeHtml(v.name)+' <span class="chip chip-red">'+escapeHtml(v.platform)+'</span><span style="font-size:12px;color:var(--text2);margin-left:8px">💰 ¥'+Number(v.total_spent||0).toLocaleString()+'</span></div><div class="sc-body">📅 生日:'+escapeHtml(v.birthday||'--')+' | 偏好:'+escapeHtml(v.preferences||'--')+(v.notes?'\
-📝 '+escapeHtml(v.notes):'')+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="generateVipScript('+v.id+')">🤖 AI话术</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteVip('+v.id+')">删除</button></div></div>';
+📝 '+escapeHtml(v.notes):'')+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="generateVipScript('+v.id+')">🤖 AI话术</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="editVip('+v.id+')">✏️</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteVip('+v.id+')">删除</button></div></div>';
   }).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无大哥数据</p>';
 }
-function toggleAddVip(){var e=document.getElementById('addVipForm');e.style.display=e.style.display==='none'?'block':'none';}
+function toggleAddVip(){editId=null;var e=document.getElementById('addVipForm');e.style.display=e.style.display==='none'?'block':'none';}
+function editVip(id){var v=D.vips.find(function(x){return x.id===id;});if(!v)return;editId=id;document.getElementById("newVipName").value=v.name;document.getElementById("newVipPlatform").value=v.platform;document.getElementById("newVipSpent").value=v.total_spent||0;document.getElementById("newVipPrefs").value=v.preferences||"";document.getElementById("newVipBirthday").value=v.birthday||"";document.getElementById("newVipNotes").value=v.notes||"";document.getElementById("addVipForm").style.display="block";}
 async function addVip(){
   var name=document.getElementById('newVipName').value.trim(),platform=document.getElementById('newVipPlatform').value,spent=+document.getElementById('newVipSpent').value||0,prefs=document.getElementById('newVipPrefs').value.trim(),bday=document.getElementById('newVipBirthday').value,notes=document.getElementById('newVipNotes').value.trim();
   if(!name)return alert('请填写昵称');
-  try{await callRpc('api_vips_add',{tok:getToken(),name_:name,platform_:platform,total_spent_:spent,preferences_:prefs,birthday_:bday,notes_:notes});}catch(e){return alert(sanitizeError(e));}
+  if(editId){try{await callRpc('api_vips_update',{tok:getToken(),id_:editId,name_:name,platform_:platform,total_spent_:spent,preferences_:prefs,birthday_:bday,notes_:notes});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_vips_add',{tok:getToken(),name_:name,platform_:platform,total_spent_:spent,preferences_:prefs,birthday_:bday,notes_:notes});}catch(e){return alert(sanitizeError(e));}}
   ['newVipName','newVipSpent','newVipPrefs','newVipBirthday','newVipNotes'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('addVipForm').style.display='none';await loadAllData();renderVips();
 }
@@ -644,14 +645,15 @@ function renderOpponents(){
   document.getElementById('opponentList').innerHTML=D.opponents.map(function(o){
     var wr=o.win_count+o.loss_count>0?Math.round(o.win_count/(o.win_count+o.loss_count)*100):'--';
     return'<div class="script-card"><div class="sc-title">'+escapeHtml(o.name)+' <span class="chip chip-blue">'+escapeHtml(o.platform)+'</span><span style="font-size:12px;color:var(--text2);margin-left:8px">🏆 '+escapeHtml(o.estimated_rank||'?')+' | 风格:'+escapeHtml(o.typical_style||'--')+'</span></div><div class="sc-body">胜率:'+wr+'% (赢'+o.win_count+' 输'+o.loss_count+')'+(o.strategy_notes?'\
-📝 策略:'+escapeHtml(o.strategy_notes):'')+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="generatePKStrategy('+o.id+')">🤖 AI策略</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteOpponent('+o.id+')">删除</button></div></div>';
+📝 策略:'+escapeHtml(o.strategy_notes):'')+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="generatePKStrategy('+o.id+')">🤖 AI策略</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="editOpponent('+o.id+')">✏️</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteOpponent('+o.id+')">删除</button></div></div>';
   }).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无对手数据</p>';
 }
-function toggleAddOpponent(){var e=document.getElementById('addOpponentForm');e.style.display=e.style.display==='none'?'block':'none';}
+function toggleAddOpponent(){editId=null;var e=document.getElementById('addOpponentForm');e.style.display=e.style.display==='none'?'block':'none';}
+function editOpponent(id){var o=D.opponents.find(function(x){return x.id===id;});if(!o)return;editId=id;document.getElementById("newOppName").value=o.name;document.getElementById("newOppPlatform").value=o.platform;document.getElementById("newOppRank").value=o.estimated_rank||"";document.getElementById("newOppStyle").value=o.typical_style||"";document.getElementById("newOppWins").value=o.win_count||0;document.getElementById("newOppLosses").value=o.loss_count||0;document.getElementById("newOppStrategy").value=o.strategy_notes||"";document.getElementById("addOpponentForm").style.display="block";}
 async function addOpponent(){
   var name=document.getElementById('newOppName').value.trim(),platform=document.getElementById('newOppPlatform').value,rank=document.getElementById('newOppRank').value.trim(),style=document.getElementById('newOppStyle').value.trim(),wins=+document.getElementById('newOppWins').value||0,losses=+document.getElementById('newOppLosses').value||0,strategy=document.getElementById('newOppStrategy').value.trim();
   if(!name)return alert('请填写对手名称');
-  try{await callRpc('api_opponents_add',{tok:getToken(),name_:name,platform_:platform,estimated_rank_:rank,typical_style_:style,win_count_:wins,loss_count_:losses,strategy_notes_:strategy});}catch(e){return alert(sanitizeError(e));}
+  if(editId){try{await callRpc('api_opponents_update',{tok:getToken(),id_:editId,name_:name,platform_:platform,rank_:rank,style_:style,wins_:wins,losses_:losses,notes_:strategy});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_opponents_add',{tok:getToken(),name_:name,platform_:platform,estimated_rank_:rank,typical_style_:style,win_count_:wins,loss_count_:losses,strategy_notes_:strategy});}catch(e){return alert(sanitizeError(e));}}
   ['newOppName','newOppRank','newOppStyle','newOppWins','newOppLosses','newOppStrategy'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('addOpponentForm').style.display='none';await loadAllData();renderOpponents();
 }
@@ -718,6 +720,7 @@ async function suggestScheduleOptimal(){
 // REVENUE (纯前端计算，不依赖 RPC)
 var revenueChart=null;
 function renderRevenue(){
+  console.log('renderRevenue called');
   var sf=document.getElementById('revenueStreamer').value,sd=document.getElementById('revenueStart').value,ed=document.getElementById('revenueEnd').value;
   document.getElementById('revenueStreamer').innerHTML='<option value="">全部主播</option>'+D.streamers.map(function(s){return'<option value="'+escapeHtml(s.name)+'">'+escapeHtml(s.name)+'</option>';}).join('');
   document.getElementById('revenueStreamer').value=sf;
@@ -746,13 +749,14 @@ function renderRevenue(){
 
 // LIGHTING
 function renderLights(){
-  document.getElementById('lightList').innerHTML=D.lighting.map(function(l){return'<div class="light-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong>'+escapeHtml(l.name)+'</strong><span class="chip chip-blue">'+escapeHtml(l.style||'')+'</span></div><div style="font-size:13px;color:var(--text2);line-height:1.6">🔆'+escapeHtml(l.main||'')+' 💡'+escapeHtml(l.fill||'')+' 🔦'+escapeHtml(l.rim||'')+' ✨'+escapeHtml(l.beauty||'')+(l.note?' 📝'+escapeHtml(l.note):'')+'</div><button class="btn btn-outline btn-sm" onclick="deleteLight('+l.id+')" style="margin-top:8px">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无方案</p>';
+  document.getElementById('lightList').innerHTML=D.lighting.map(function(l){return'<div class="light-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong>'+escapeHtml(l.name)+'</strong><span class="chip chip-blue">'+escapeHtml(l.style||'')+'</span></div><div style="font-size:13px;color:var(--text2);line-height:1.6">🔆'+escapeHtml(l.main||'')+' 💡'+escapeHtml(l.fill||'')+' 🔦'+escapeHtml(l.rim||'')+' ✨'+escapeHtml(l.beauty||'')+(l.note?' 📝'+escapeHtml(l.note):'')+'</div><button class="btn btn-outline btn-sm" onclick="editLight('+l.id+')" style="margin-top:8px">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无方案</p>';
 }
-function toggleAddLight(){var e=document.getElementById('addLightForm');e.style.display=e.style.display==='none'?'block':'none';}
+function toggleAddLight(){editId=null;var e=document.getElementById('addLightForm');e.style.display=e.style.display==='none'?'block':'none';}
+function editLight(id){var l=D.lighting.find(function(x){return x.id===id;});if(!l)return;editId=id;document.getElementById("newLightName").value=l.name||"";document.getElementById("newLightStyle").value=l.style||"";document.getElementById("newLightMain").value=l.main||"";document.getElementById("newLightFill").value=l.fill||"";document.getElementById("newLightRim").value=l.rim||"";document.getElementById("newLightBeauty").value=l.beauty||"";document.getElementById("newLightNote").value=l.note||"";document.getElementById("addLightForm").style.display="block";}
 async function addLight(){
   var item={tok:getToken(),name_:document.getElementById('newLightName').value.trim(),style_:document.getElementById('newLightStyle').value.trim(),main_:document.getElementById('newLightMain').value.trim(),fill_:document.getElementById('newLightFill').value.trim(),rim_:document.getElementById('newLightRim').value.trim(),beauty_:document.getElementById('newLightBeauty').value.trim(),note_:document.getElementById('newLightNote').value.trim()};
   if(!item.name_)return alert('请填写方案名称');
-  try{await callRpc('api_lighting_add',item);}catch(e){return alert(sanitizeError(e));}
+  if(editId){try{await callRpc('api_lighting_update',{tok:getToken(),id_:editId,name_:item.name_,style_:item.style_,main_:item.main_,fill_:item.fill_,rim_:item.rim_,beauty_:item.beauty_,note_:item.note_});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_lighting_add',item);}catch(e){return alert(sanitizeError(e));}}
   ['newLightName','newLightStyle','newLightMain','newLightFill','newLightRim','newLightBeauty','newLightNote'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('addLightForm').style.display='none';await loadAllData();renderLights();
 }
@@ -761,13 +765,14 @@ async function deleteLight(id){if(!confirm('删除？'))return;try{await callRpc
 // STREAMERS
 function renderStreamers(){
   document.getElementById('recapStreamer').innerHTML='<option value="">选择主播</option>'+D.streamers.map(function(s){return'<option value="'+escapeHtml(s.name)+'">'+escapeHtml(s.name)+'</option>';}).join('');
-  document.getElementById('streamerList').innerHTML=D.streamers.map(function(s){return'<div class="streamer-card"><div style="display:flex;justify-content:space-between"><strong>'+escapeHtml(s.name)+'</strong><span class="chip chip-green">'+escapeHtml(s.platform||'')+'</span></div><div style="font-size:13px;color:var(--text2);margin-top:4px">'+escapeHtml(s.note||'')+' · '+escapeHtml(s.start_date||'')+'</div><button class="btn btn-outline btn-sm" onclick="deleteStreamer('+s.id+')" style="margin-top:8px">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无主播</p>';
+  document.getElementById('streamerList').innerHTML=D.streamers.map(function(s){return'<div class="streamer-card"><div style="display:flex;justify-content:space-between"><strong>'+escapeHtml(s.name)+'</strong><span class="chip chip-green">'+escapeHtml(s.platform||'')+'</span></div><div style="font-size:13px;color:var(--text2);margin-top:4px">'+escapeHtml(s.note||'')+' · '+escapeHtml(s.start_date||'')+'</div><button class="btn btn-outline btn-sm" onclick="editStreamer('+s.id+')" style="margin-top:8px">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无主播</p>';
 }
-function toggleAddStreamer(){var e=document.getElementById('addStreamerForm');e.style.display=e.style.display==='none'?'block':'none';}
+function toggleAddStreamer(){editId=null;var e=document.getElementById('addStreamerForm');e.style.display=e.style.display==='none'?'block':'none';}
+function editStreamer(id){var s=D.streamers.find(function(x){return x.id===id;});if(!s)return;editId=id;document.getElementById("newStreamerName").value=s.name;document.getElementById("newStreamerPlatform").value=s.platform;document.getElementById("newStreamerNote").value=s.note||"";document.getElementById("addStreamerForm").style.display="block";}
 async function addStreamer(){
   var name=document.getElementById('newStreamerName').value.trim(),platform=document.getElementById('newStreamerPlatform').value,note=document.getElementById('newStreamerNote').value.trim();
   if(!name)return alert('请填写主播昵称');
-  try{await callRpc('api_streamers_add',{tok:getToken(),name_:name,platform_:platform,note_:note});}catch(e){return alert(sanitizeError(e));}
+  if(editId){try{await callRpc('api_streamers_update',{tok:getToken(),id_:editId,name_:name,platform_:platform,note_:note});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_streamers_add',{tok:getToken(),name_:name,platform_:platform,note_:note});}catch(e){return alert(sanitizeError(e));}}
   ['newStreamerName','newStreamerNote'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('addStreamerForm').style.display='none';await loadAllData();renderStreamers();
 }
@@ -873,12 +878,13 @@ function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()
 function renderWorkLog(){
   var td=today();document.getElementById('wlDate').textContent=td;document.getElementById('wlTime').value=new Date().toTimeString().slice(0,5);
   var logs=D.workLogs[td]||[];
-  document.getElementById('workLogList').innerHTML=logs.map(function(l){return'<div class="worklog-entry"><div class="wl-time">'+escapeHtml(l.time)+'</div><div class="wl-content">'+escapeHtml(l.content)+'</div><button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="deleteWorkLog('+l.id+')">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
+  document.getElementById('workLogList').innerHTML=logs.map(function(l){return'<div class="worklog-entry"><div class="wl-time">'+escapeHtml(l.time)+'</div><div class="wl-content">'+escapeHtml(l.content)+'</div><button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="editWorkLog('+l.id+')">✏️</button> <button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="deleteWorkLog('+l.id+')">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
 }
+function editWorkLog(id){var logs=D.workLogs;var found=null;for(var d in logs){found=logs[d].find(function(l){return l.id===id;});if(found)break;}if(!found)return;editId=id;document.getElementById("wlTime").value=found.time;document.getElementById("wlContent").value=found.content;}
 async function addWorkLog(){
   var td=today(),time=document.getElementById('wlTime').value,content=document.getElementById('wlContent').value.trim();
   if(!time||!content)return;
-  try{await callRpc('api_work_logs_add',{tok:getToken(),date_:td,time_:time,content_:content});}catch(e){return alert(sanitizeError(e));}
+  if(editId){try{await callRpc('api_work_logs_update',{tok:getToken(),id_:editId,content_:content});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_work_logs_add',{tok:getToken(),date_:td,time_:time,content_:content});}catch(e){return alert(sanitizeError(e));}}
   document.getElementById('wlContent').value='';await loadAllData();renderWorkLog();
 }
 async function deleteWorkLog(id){if(!confirm('删除？'))return;try{await callRpc('api_work_logs_del',{tok:getToken(),id_:id});await loadAllData();renderWorkLog();}catch(e){alert(sanitizeError(e));}}
