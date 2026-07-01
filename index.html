@@ -194,7 +194,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
       <button onclick="aiPreset='free';setAiPreset()">💬 自由提问</button></div>
     <div id="aiContextInput" style="display:none;margin-bottom:8px"><div class="form-group"><label id="aiContextLabel">场景</label><input type="text" id="aiContext" placeholder="如：开场话术"></div></div>
     <div class="form-group"><label>需求描述</label><textarea id="aiPrompt" rows="3" placeholder="例如：帮我写一段开场感谢话术，风格轻松幽默..."></textarea></div>
-    <button class="btn btn-primary" onclick="runAI()">🤖 生成</button>
+    <button class="btn btn-primary" id="aiGenerateBtn" onclick="runAI()">🤖 生成</button>
     <div id="aiResult" style="margin-top:12px;padding:12px;background:var(--bg);border-radius:8px;display:none">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>AI 回复</strong><div style="display:flex;gap:6px"><button class="btn btn-outline btn-sm" onclick="applyAiResult()">📥 应用</button><button class="btn btn-outline btn-sm" onclick="copyAiResult()">📋 复制</button></div></div>
       <div id="aiResultText" style="font-size:14px;line-height:1.8;white-space:pre-wrap"></div></div></div>
@@ -326,7 +326,7 @@ function getToken(){return sessionStorage.getItem('liveops_token')||'';}
 function getUser(){try{return JSON.parse(sessionStorage.getItem('liveops_user')||'{}');}catch(e){return{};}}
 function isAdmin(){return getUser().role==='admin';}
 function canEdit(){var u=getUser();if(u.role==='admin')return true;return u.permissions&&u.permissions.can_edit;}
-function hasModule(m){var u=getUser();if(m==='ai'&&u.role!=='admin')return false;if(u.role==='admin')return true;return u.permissions&&u.permissions.modules&&u.permissions.modules.indexOf(m)!==-1;}
+function hasModule(m){var u=getUser();if(u.role==='admin')return true;return u.permissions&&u.permissions.modules&&u.permissions.modules.indexOf(m)!==-1;}
 function showActions(html){return canEdit()||isAdmin()?html:'';}
 function applyPermissions(){
   var u=getUser(),isA=isAdmin(),edit=canEdit();
@@ -519,7 +519,7 @@ function setAiPreset(){
   else if(aiPreset==='vip'){ctx.style.display='block';lbl.textContent='大哥特点';inp.placeholder='如：喜欢被夸、消费大、40岁左右...';}
   else if(aiPreset==='schedule'){ctx.style.display='block';lbl.textContent='排班情况';inp.placeholder='如：3个主播、晚上8-11点高峰...';}
 }
-function renderAI(){setAiPreset();}
+function renderAI(){setAiPreset();if(!isAdmin()){document.getElementById('aiGenerateBtn').style.display='none';document.getElementById('aiPrompt').disabled=true;document.getElementById('aiPrompt').placeholder='仅管理员可使用 AI';}else{document.getElementById('aiGenerateBtn').style.display='';document.getElementById('aiPrompt').disabled=false;document.getElementById('aiPrompt').placeholder='例如：帮我写一段开场感谢话术...';}}
 
 async function runAI(){
   var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
