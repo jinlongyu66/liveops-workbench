@@ -785,7 +785,8 @@ function initRecap(){
   document.getElementById('recapDate').value=today();
   ['apiKey'].forEach(function(id){document.getElementById(id).value=getApiKey();});
   document.getElementById('aiModel').value=getAiModel();document.getElementById('customEndpoint').value=getCustomEp();document.getElementById('customModel').value=getCustomModel();
-  onAiModelChange();renderStreamers();renderHourlyGrid();renderRecapHistory();renderRecapChart();document.getElementById('generatedReviewCard').style.display='none';
+  onAiModelChange();var saved=document.getElementById('recapStreamer').value;renderStreamers();document.getElementById('recapStreamer').value=saved;
+  renderHourlyGrid();renderRecapHistory();renderRecapChart();document.getElementById('generatedReviewCard').style.display='none';
 }
 function onRecapChange(){initRecap();}
 function renderHourlyGrid(){document.getElementById('hourlyGrid').innerHTML=Array.from({length:24},function(_,i){return'<div class="hourly-item"><label>'+i+':00</label><input type="number" id="hv_'+i+'" min="0"></div>';}).join('');}
