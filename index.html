@@ -201,10 +201,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 </div>
 
 <div class="page" id="page-settings">
-  <div class="card"><h2>🔒 修改密码</h2>
-    <div class="form-group"><label>旧密码</label><input type="password" id="oldPassword" placeholder="输入当前密码"></div>
-    <div class="form-group"><label>新密码</label><input type="password" id="newPassword" placeholder="新密码（至少4位）"></div>
-    <button class="btn btn-primary" onclick="changePassword()">🔒 修改密码</button></div>
+  <div class="card"><h2>🔒 修改登录密码</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px">需要管理密码才能修改。登录密码可以分享给别人，管理密码只有你知道。</p>
+    <div class="form-group"><label>管理密码</label><input type="password" id="oldPassword" placeholder="只有你知道的密码"></div>
+    <div class="form-group"><label>新登录密码</label><input type="password" id="newPassword" placeholder="新密码（至少4位）"></div>
+    <button class="btn btn-primary" onclick="changePassword()">🔒 修改</button></div>
   <div class="card"><h2>💾 数据备份</h2>
     <p style="font-size:13px;color:var(--text2);margin-bottom:12px">导出所有数据为 JSON 文件。网站出问题时可重新导入恢复。</p>
     <div style="display:flex;gap:8px">
@@ -333,9 +334,9 @@ function forceLogout(){sessionStorage.removeItem('liveops_token');loggedIn=false
 async function logout(){try{if(getToken())await callRpc('logout_fn',{});}catch(e){}sessionStorage.removeItem('liveops_token');location.reload();}
 
 async function changePassword(){
-  var op=document.getElementById('oldPassword').value.trim(),np=document.getElementById('newPassword').value.trim();
-  if(!op)return alert('请输入旧密码');if(!np)return alert('请输入新密码');if(np.length<4)return alert('密码至少4位');if(op===np)return alert('新旧密码不能相同');
-  try{var ok=await callRpc('change_pw',{tok:getToken(),old_password:op,new_password:np});if(ok)alert('✅ 密码已修改！');else alert('❌ 旧密码错误');document.getElementById('oldPassword').value='';document.getElementById('newPassword').value='';}
+  var ap=document.getElementById('oldPassword').value.trim(),np=document.getElementById('newPassword').value.trim();
+  if(!ap)return alert('请输入管理密码');if(!np)return alert('请输入新密码');if(np.length<4)return alert('密码至少4位');
+  try{var ok=await callRpc('change_pw',{tok:getToken(),admin_pw:ap,new_password:np});if(ok)alert('✅ 登录密码已修改！');else alert('❌ 管理密码错误');document.getElementById('oldPassword').value='';document.getElementById('newPassword').value='';}
   catch(e){alert(sanitizeError(e));}
 }
 
