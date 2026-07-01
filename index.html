@@ -606,10 +606,11 @@ async function addUser(){
   }
   document.getElementById('addUserForm').style.display='none';document.getElementById('newUserName').value='';document.getElementById('newUserPw').value='';loadUsers();
 }
-function editUser(id,u){
-  editUserId=id;document.getElementById('newUserName').value=u.username;document.getElementById('newUserPw').value='';
-  document.getElementById('newUserRole').value=u.role;document.getElementById('newUserEdit').checked=(u.permissions||{}).can_edit||false;
-  var mods=(u.permissions||{}).modules||[];
+function loadEditUser(id){callRpc('api_users_list',{tok:getToken()}).then(function(users){var u=users.find(function(x){return x.id===id;});if(u)editUser(id,u.role,u.permissions||{});});}
+function editUser(id,role,ps){
+  editUserId=id;document.getElementById('newUserName').value='';document.getElementById('newUserPw').value='';
+  document.getElementById('newUserRole').value=role;document.getElementById('newUserEdit').checked=ps.can_edit||false;
+  var mods=ps.modules||[];
   ALL_MODULES.forEach(function(m){
     var b=document.getElementById('um_'+m);if(!b)return;
     if(mods.indexOf(m)>=0){b.classList.add('chip-green');b.style.opacity=1;}else{b.classList.remove('chip-green');b.style.opacity=0.3;}
@@ -623,7 +624,7 @@ function loadUsers(){
       var ps=u.permissions||{},mods=ps.modules||[],edit=ps.can_edit;
       var labels=mods.map(function(m){return MOD_LABELS[m]||m;}).join('、');
       html+='<div class="script-card"><div class="sc-title">'+escapeHtml(u.username)+' <span class="chip chip-red">'+escapeHtml(u.role)+'</span> <span class="chip chip-green">'+(edit?'可编辑':'只读')+'</span></div><div class="sc-body">模块：'+(labels||'无')+'</div><div class="sc-actions">';
-      html+='<button class="btn btn-sm" style="color:var(--blue)" onclick=\\'editUser('+u.id+','+JSON.stringify({username:u.username,role:u.role,permissions:ps})+')\\'>✏️ 编辑</button> ';
+      html+='<button class="btn btn-sm" style="color:var(--blue)" onclick="loadEditUser('+u.id+')">✏️ 编辑</button> ';
       if(u.username!=='admin')html+='<button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteUser('+u.id+')">删除</button>';
       else html+='<span style="font-size:12px;color:var(--text2)">管理员不可删除</span>';
       html+='</div></div>';
