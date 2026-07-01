@@ -236,7 +236,7 @@ async function logout(){try{if(getToken())await callRpc('logout_fn',{});}catch(e
 async function changePassword(){
   var np=document.getElementById('newPassword').value.trim();
   if(!np)return alert('请输入新密码');if(np.length<4)return alert('密码至少4位');
-  try{var ok=await callRpc('change_pw',{new_password:np});if(ok)alert('✅ 密码已修改！');else alert('修改失败');document.getElementById('newPassword').value='';}
+  try{var ok=await callRpc('change_pw',{tok:getToken(),new_password:np});if(ok)alert('✅ 密码已修改！');else alert('修改失败');document.getElementById('newPassword').value='';}
   catch(e){alert(sanitizeError(e));}
 }
 
