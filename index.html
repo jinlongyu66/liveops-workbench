@@ -311,7 +311,7 @@ async function callRpc(fnName,params){
 }
 
 var loggedIn=false;
-var D={scripts:[],lighting:[],streamers:[],recaps:[],workLogs:{},vips:[],opponents:[],schedules:[],revenueSummary:[],revenueDetail:[]};
+var D={scripts:[],lighting:[],streamers:[],recaps:[],workLogs:{},vips:[],opponents:[],schedules:[]};
 var LOGIN_COOLDOWN=0;
 
 document.addEventListener('DOMContentLoaded',function(){document.getElementById('loginError').textContent='⏳ 连接中...';checkSession();});
@@ -610,28 +610,31 @@ async function suggestScheduleOptimal(){
 }
 
 
-// REVENUE
+// REVENUE (纯前端计算，不依赖 RPC)
 var revenueChart=null;
-async function renderRevenue(){
+function renderRevenue(){
   document.getElementById('revenueStreamer').innerHTML='<option value="">全部主播</option>'+D.streamers.map(function(s){return'<option value="'+escapeHtml(s.name)+'">'+escapeHtml(s.name)+'</option>';}).join('');
-  var sf=document.getElementById('revenueStreamer').value,start=document.getElementById('revenueStart').value,end=document.getElementById('revenueEnd').value;
-  try{
-    D.revenueSummary=await callRpc('api_revenue_summary',{tok:getToken(),streamer_filter:sf,start_date:start,end_date:end})||[];
-    D.revenueDetail=await callRpc('api_revenue_detail',{tok:getToken(),streamer_filter:sf,start_date:start,end_date:end})||[];
-  }catch(e){alert(sanitizeError(e));return;}
-  var ti=D.revenueSummary.reduce(function(a,x){return a+Number(x.total_income||0);},0),tv=D.revenueSummary.reduce(function(a,x){return a+Number(x.total_views||0);},0),tf=D.revenueSummary.reduce(function(a,x){return a+Number(x.total_fans||0);},0);
+  var sf=document.getElementById('revenueStreamer').value,sd=document.getElementById('revenueStart').value,ed=document.getElementById('revenueEnd').value;
+  var data=D.recaps.filter(function(r){return (!sf||r.streamer===sf)&&(!sd||r.date>=sd)&&(!ed||r.date<=ed);});
+  if(!data.length){document.getElementById('revenueSummaryCard').style.display='none';document.getElementById('revenueChartCard').style.display='none';document.getElementById('revenueByStreamerCard').style.display='none';return;}
+  var total={income:0,views:0,fans:0,payers:0,big_gift:0,big_gift_amt:0,pk_count:0,pk_win:0};
+  var byStreamer={};
+  data.forEach(function(r){
+    total.income+=Number(r.income);total.views+=Number(r.views);total.fans+=Number(r.fans);total.payers+=Number(r.payers);total.big_gift+=Number(r.big_gift);total.big_gift_amt+=Number(r.big_gift_amt);total.pk_count+=Number(r.pk_count);total.pk_win+=Number(r.pk_win);
+    if(!byStreamer[r.streamer])byStreamer[r.streamer]={income:0,views:0,fans:0,pk_count:0,pk_win:0,count:0,dates:[]};
+    var bs=byStreamer[r.streamer];bs.income+=Number(r.income);bs.views+=Number(r.views);bs.fans+=Number(r.fans);bs.pk_count+=Number(r.pk_count);bs.pk_win+=Number(r.pk_win);bs.count++;bs.dates.push(r.date);
+  });
   document.getElementById('revenueSummaryCard').style.display='block';
-  document.getElementById('revenueMetrics').innerHTML='<div class="recap-metric"><div class="rm-val">¥'+Number(ti).toLocaleString()+'</div><div class="rm-label">总收入</div></div><div class="recap-metric"><div class="rm-val">'+Number(tv).toLocaleString()+'</div><div class="rm-label">总场观</div></div><div class="recap-metric"><div class="rm-val">'+Number(tf).toLocaleString()+'</div><div class="rm-label">新增粉丝</div></div>';
-  var ctx=document.getElementById('revenueChart').getContext('2d');
-  if(revenueChart)revenueChart.destroy();
-  if(D.revenueDetail.length>0){
-    document.getElementById('revenueChartCard').style.display='block';
-    revenueChart=new Chart(ctx,{type:'bar',data:{labels:D.revenueDetail.map(function(d){return d.date.slice(5);}),datasets:[{label:'收入(元)',data:D.revenueDetail.map(function(d){return d.income;}),backgroundColor:'#e74c3c'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
-  }else{document.getElementById('revenueChartCard').style.display='none';}
-  document.getElementById('revenueByStreamerCard').style.display=D.revenueSummary.length>0?'block':'none';
-  document.getElementById('revenueByStreamer').innerHTML=D.revenueSummary.map(function(s){
-    var wr=s.pk_total>0?Math.round(s.pk_wins/s.pk_total*100)+'%':'--';
-    return'<div class="script-card"><div class="sc-title">🎙 '+escapeHtml(s.streamer)+' <span style="color:var(--accent);font-weight:700">¥'+Number(s.total_income||0).toLocaleString()+'</span></div><div class="sc-body">📅 '+escapeHtml(s.date_min)+' ~ '+escapeHtml(s.date_max)+' | 场次:'+s.recaps_count+' | 场观:'+Number(s.total_views||0).toLocaleString()+' | 粉:'+Number(s.total_fans||0)+' | PK胜率:'+wr+'</div></div>';
+  document.getElementById('revenueMetrics').innerHTML='<div class="recap-metric"><div class="rm-val">¥'+total.income.toLocaleString()+'</div><div class="rm-label">总收入</div></div><div class="recap-metric"><div class="rm-val">'+total.views.toLocaleString()+'</div><div class="rm-label">总场观</div></div><div class="recap-metric"><div class="rm-val">'+total.fans.toLocaleString()+'</div><div class="rm-label">新增粉丝</div></div>';
+  var ctx=document.getElementById('revenueChart').getContext('2d');if(revenueChart)revenueChart.destroy();
+  var sorted=data.slice().sort(function(a,b){return a.date>b.date?1:-1;});
+  document.getElementById('revenueChartCard').style.display='block';
+  revenueChart=new Chart(ctx,{type:'bar',data:{labels:sorted.map(function(d){return d.date.slice(5);}),datasets:[{label:'收入(元)',data:sorted.map(function(d){return d.income;}),backgroundColor:'#e74c3c'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  document.getElementById('revenueByStreamerCard').style.display='block';
+  var names=Object.keys(byStreamer).sort(function(a,b){return byStreamer[b].income-byStreamer[a].income;});
+  document.getElementById('revenueByStreamer').innerHTML=names.map(function(n){
+    var bs=byStreamer[n],wr=bs.pk_count>0?Math.round(bs.pk_win/bs.pk_count*100)+'%':'--';
+    return'<div class="script-card"><div class="sc-title">🎙 '+escapeHtml(n)+' <span style="color:var(--accent);font-weight:700">¥'+bs.income.toLocaleString()+'</span></div><div class="sc-body">场次:'+bs.count+' | 场观:'+bs.views.toLocaleString()+' | 粉:'+bs.fans.toLocaleString()+' | PK胜率:'+wr+'</div></div>';
   }).join('');
 }
 
