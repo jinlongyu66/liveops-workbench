@@ -722,7 +722,7 @@ function renderRevenue(){
   document.getElementById('revenueStreamer').innerHTML='<option value="">全部主播</option>'+D.streamers.map(function(s){return'<option value="'+escapeHtml(s.name)+'">'+escapeHtml(s.name)+'</option>';}).join('');
   document.getElementById('revenueStreamer').value=sf;
   var data=D.recaps.filter(function(r){return (!sf||r.streamer===sf)&&(!sd||r.date>=sd)&&(!ed||r.date<=ed);});
-  if(!data.length){document.getElementById('revenueSummaryCard').style.display='none';document.getElementById('revenueChartCard').style.display='none';document.getElementById('revenueByStreamerCard').style.display='none';return;}
+  if(!data.length){document.getElementById('revenueSummaryCard').style.display='block';document.getElementById('revenueMetrics').innerHTML='<p style=\"text-align:center;color:var(--text2);padding:20px\">暂无复盘数据，请先在复盘页录入</p>';document.getElementById('revenueChartCard').style.display='none';document.getElementById('revenueByStreamerCard').style.display='none';return;}
   var total={income:0,views:0,fans:0,payers:0,big_gift:0,big_gift_amt:0,pk_count:0,pk_win:0};
   var byStreamer={};
   data.forEach(function(r){
