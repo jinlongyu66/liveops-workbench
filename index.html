@@ -507,6 +507,107 @@ async function callAIWithPrompt(apiKey,model,prompt,system,maxTokens){
 
 function copyAiResult(){navigator.clipboard.writeText(_aiResultText).then(function(){alert('已复制');});}
 
+// VIPS
+function renderVips(){
+  document.getElementById('vipList').innerHTML=D.vips.map(function(v){
+    return'<div class="script-card"><div class="sc-title">'+escapeHtml(v.name)+' <span class="chip chip-red">'+escapeHtml(v.platform)+'</span><span style="font-size:12px;color:var(--text2);margin-left:8px">💰 ¥'+Number(v.total_spent||0).toLocaleString()+'</span></div><div class="sc-body">📅 生日:'+escapeHtml(v.birthday||'--')+' | 偏好:'+escapeHtml(v.preferences||'--')+(v.notes?'\
+📝 '+escapeHtml(v.notes):'')+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="generateVipScript('+v.id+')">🤖 AI话术</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteVip('+v.id+')">删除</button></div></div>';
+  }).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无大哥数据</p>';
+}
+function toggleAddVip(){var e=document.getElementById('addVipForm');e.style.display=e.style.display==='none'?'block':'none';}
+async function addVip(){
+  var name=document.getElementById('newVipName').value.trim(),platform=document.getElementById('newVipPlatform').value,spent=+document.getElementById('newVipSpent').value||0,prefs=document.getElementById('newVipPrefs').value.trim(),bday=document.getElementById('newVipBirthday').value,notes=document.getElementById('newVipNotes').value.trim();
+  if(!name)return alert('请填写昵称');
+  try{await callRpc('api_vips_add',{tok:getToken(),name_:name,platform_:platform,total_spent_:spent,preferences_:prefs,birthday_:bday,notes_:notes});}catch(e){return alert(sanitizeError(e));}
+  ['newVipName','newVipSpent','newVipPrefs','newVipBirthday','newVipNotes'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('addVipForm').style.display='none';await loadAllData();renderVips();
+}
+async function deleteVip(id){if(!confirm('删除？'))return;try{await callRpc('api_vips_del',{tok:getToken(),id_:id});await loadAllData();renderVips();}catch(e){alert(sanitizeError(e));}}
+async function generateVipScript(id){
+  var v=D.vips.find(function(x){return x.id===id;});if(!v)return;
+  var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
+  var prompt='大哥：'+JSON.stringify({name:v.name,platform:v.platform,spent:v.total_spent,preferences:v.preferences,birthday:v.birthday,notes:v.notes});
+  var system='你是直播运营专家。根据高价值观众信息，生成200字个性化互动话术：开场问候、话题引导、礼物感谢。亲切自然，用中文。';
+  try{var t=await callAIWithPrompt(key,getAiModel(),prompt,system,500);
+    document.getElementById('vipList').innerHTML+='<div class="script-card" style="margin-top:8px;background:var(--blue-light)"><div class="sc-title">🤖 AI话术（'+escapeHtml(v.name)+'）</div><div class="sc-body">'+escapeHtml(t)+'</div><button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(function(){alert(\'已复制\');})">📋 复制</button></div>';
+  }catch(e){alert(sanitizeError(e));}
+}
+
+// OPPONENTS
+function renderOpponents(){
+  document.getElementById('opponentList').innerHTML=D.opponents.map(function(o){
+    var wr=o.win_count+o.loss_count>0?Math.round(o.win_count/(o.win_count+o.loss_count)*100):'--';
+    return'<div class="script-card"><div class="sc-title">'+escapeHtml(o.name)+' <span class="chip chip-blue">'+escapeHtml(o.platform)+'</span><span style="font-size:12px;color:var(--text2);margin-left:8px">🏆 '+escapeHtml(o.estimated_rank||'?')+' | 风格:'+escapeHtml(o.typical_style||'--')+'</span></div><div class="sc-body">胜率:'+wr+'% (赢'+o.win_count+' 输'+o.loss_count+')'+(o.strategy_notes?'\
+📝 策略:'+escapeHtml(o.strategy_notes):'')+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="generatePKStrategy('+o.id+')">🤖 AI策略</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteOpponent('+o.id+')">删除</button></div></div>';
+  }).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无对手数据</p>';
+}
+function toggleAddOpponent(){var e=document.getElementById('addOpponentForm');e.style.display=e.style.display==='none'?'block':'none';}
+async function addOpponent(){
+  var name=document.getElementById('newOppName').value.trim(),platform=document.getElementById('newOppPlatform').value,rank=document.getElementById('newOppRank').value.trim(),style=document.getElementById('newOppStyle').value.trim(),wins=+document.getElementById('newOppWins').value||0,losses=+document.getElementById('newOppLosses').value||0,strategy=document.getElementById('newOppStrategy').value.trim();
+  if(!name)return alert('请填写对手名称');
+  try{await callRpc('api_opponents_add',{tok:getToken(),name_:name,platform_:platform,estimated_rank_:rank,typical_style_:style,win_count_:wins,loss_count_:losses,strategy_notes_:strategy});}catch(e){return alert(sanitizeError(e));}
+  ['newOppName','newOppRank','newOppStyle','newOppWins','newOppLosses','newOppStrategy'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('addOpponentForm').style.display='none';await loadAllData();renderOpponents();
+}
+async function deleteOpponent(id){if(!confirm('删除？'))return;try{await callRpc('api_opponents_del',{tok:getToken(),id_:id});await loadAllData();renderOpponents();}catch(e){alert(sanitizeError(e));}}
+async function generatePKStrategy(id){
+  var o=D.opponents.find(function(x){return x.id===id;});if(!o)return;
+  var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
+  var prompt='PK对手：'+JSON.stringify({name:o.name,platform:o.platform,rank:o.estimated_rank,style:o.typical_style,wins:o.win_count,losses:o.loss_count,notes:o.strategy_notes});
+  var system='你是直播PK教练。根据对手信息生成200字PK策略：开场策略、拉票话术、礼物节奏、关键反击时机。具体可执行，用中文。';
+  try{var t=await callAIWithPrompt(key,getAiModel(),prompt,system,500);
+    document.getElementById('opponentList').innerHTML+='<div class="script-card" style="margin-top:8px;background:var(--orange-light)"><div class="sc-title">🤖 AI策略(vs '+escapeHtml(o.name)+')</div><div class="sc-body">'+escapeHtml(t)+'</div><button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(function(){alert(\'已复制\');})">📋 复制</button></div>';
+  }catch(e){alert(sanitizeError(e));}
+}
+
+// SCHEDULE
+var scheduleWeekOffset=0;
+function getMonday(d){var day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);return new Date(d.setDate(diff));}
+function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function renderSchedule(){
+  var today=new Date(),monday=getMonday(new Date(today));monday.setDate(monday.getDate()+scheduleWeekOffset*7);
+  var sunday=new Date(monday);sunday.setDate(sunday.getDate()+6);
+  document.getElementById('scheduleWeekLabel').textContent=fmtDate(monday)+' ~ '+fmtDate(sunday);
+  document.getElementById('newScheduleStreamer').innerHTML=D.streamers.map(function(s){return'<option>'+escapeHtml(s.name)+'</option>';}).join('');
+  document.getElementById('newScheduleDate').value=fmtDate(today);
+  var start=fmtDate(monday),end=fmtDate(sunday);
+  var ws=D.schedules.filter(function(s){return s.schedule_date>=start&&s.schedule_date<=end;});
+  ws.sort(function(a,b){return a.schedule_date>b.schedule_date?1:-1;});
+  var sc={scheduled:'chip-blue',done:'chip-green',canceled:'chip-red'};
+  var sl={scheduled:'待播',done:'已完成',canceled:'已取消'};
+  var days={};ws.forEach(function(s){if(!days[s.schedule_date])days[s.schedule_date]=[];days[s.schedule_date].push(s);});
+  var html='';
+  for(var d=new Date(monday);d<=sunday;d.setDate(d.getDate()+1)){
+    var ds=fmtDate(d),dl=['日','一','二','三','四','五','六'][d.getDay()];
+    html+='<div class="schedule-day-header">📅 '+ds+' 周'+dl+'</div>';
+    var items=days[ds]||[];
+    if(!items.length)html+='<p style="font-size:12px;color:var(--text2);padding:4px 12px">无排班</p>';
+    else html+=items.map(function(s){
+      return'<div class="script-card"><div class="sc-title">🎙 '+escapeHtml(s.streamer)+' <span class="chip '+sc[s.status||'scheduled']+'">'+(sl[s.status]||'待播')+'</span><span style="font-size:12px;color:var(--text2);margin-left:8px">🕐 '+escapeHtml(s.time_slot)+'</span></div>'+(s.notes?'<div class="sc-body">'+escapeHtml(s.notes)+'</div>':'')+'<div class="sc-actions"><button class="btn btn-green btn-sm" onclick="updateScheduleStatus('+s.id+',\'done\')" style="padding:3px 8px;font-size:11px">✅ 完成</button> <button class="btn btn-sm" style="background:var(--orange-light);color:var(--orange);padding:3px 8px;font-size:11px" onclick="updateScheduleStatus('+s.id+',\'canceled\')">❌ 取消</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light);padding:3px 8px;font-size:11px" onclick="deleteSchedule('+s.id+')">🗑</button></div></div>';
+    }).join('');
+  }
+  document.getElementById('scheduleList').innerHTML=html;
+}
+function shiftWeek(n){scheduleWeekOffset+=n;renderSchedule();}
+function toggleAddSchedule(){var e=document.getElementById('addScheduleForm');e.style.display=e.style.display==='none'?'block':'none';}
+async function addSchedule(){
+  var sn=document.getElementById('newScheduleStreamer').value,date=document.getElementById('newScheduleDate').value,slot=document.getElementById('newScheduleSlot').value.trim(),notes=document.getElementById('newScheduleNotes').value.trim();
+  if(!sn||!date||!slot)return alert('请填写完整');
+  try{await callRpc('api_schedules_add',{tok:getToken(),schedule_date_:date,streamer_:sn,time_slot_:slot,status_:'scheduled',notes_:notes});}catch(e){return alert(sanitizeError(e));}
+  document.getElementById('newScheduleSlot').value='';document.getElementById('newScheduleNotes').value='';
+  document.getElementById('addScheduleForm').style.display='none';await loadAllData();renderSchedule();
+}
+async function updateScheduleStatus(id,status){try{await callRpc('api_schedules_status',{tok:getToken(),id_:id,status_:status});await loadAllData();renderSchedule();}catch(e){alert(sanitizeError(e));}}
+async function deleteSchedule(id){if(!confirm('删除？'))return;try{await callRpc('api_schedules_del',{tok:getToken(),id_:id});await loadAllData();renderSchedule();}catch(e){alert(sanitizeError(e));}}
+async function suggestScheduleOptimal(){
+  var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
+  var system='你是直播运营排班专家。分析现有排班，给200字优化建议：黄金时段覆盖、主播疲劳度、收入最大化。用中文。';
+  try{var t=await callAIWithPrompt(key,getAiModel(),JSON.stringify(D.schedules)+'|'+JSON.stringify(D.streamers),system,500);
+    document.getElementById('scheduleList').innerHTML='<div class="script-card" style="margin-bottom:12px;background:var(--blue-light)"><div class="sc-title">🤖 AI排班建议</div><div class="sc-body">'+escapeHtml(t)+'</div></div>'+document.getElementById('scheduleList').innerHTML;
+  }catch(e){alert(sanitizeError(e));}
+}
+
+
 // REVENUE
 var revenueChart=null;
 async function renderRevenue(){
