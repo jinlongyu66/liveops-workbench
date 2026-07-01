@@ -551,8 +551,8 @@ function copyAiResult(){navigator.clipboard.writeText(_aiResultText).then(functi
 var ALL_MODULES=['scripts','lighting','streamers','recap','worklog','vips','opponents','schedule','revenue'];
 var MOD_LABELS={scripts:'话术',lighting:'灯光',streamers:'主播',recap:'复盘',worklog:'日志',vips:'大哥',opponents:'PK',schedule:'排班',revenue:'收入'};
 function renderUsers(){
-  var sel='';ALL_MODULES.forEach(function(m){sel+='<button class="chip chip-blue" style="cursor:pointer" id="um_'+m+'" onclick="var t=document.getElementById("um_'+m+'");t.classList.toggle("chip-green");t.classList.toggle("chip-blue")">'+MOD_LABELS[m]+'</button>';});
-  document.getElementById('newUserModules').innerHTML=sel;
+  var sel='';ALL_MODULES.forEach(function(m){sel+='<button class="chip chip-green" style="cursor:pointer" id="um_'+m+'" onclick="var t=document.getElementById('um_'+m+'');if(t.classList.contains('chip-green')){t.classList.remove('chip-green');t.style.opacity=0.3}else{t.classList.add('chip-green');t.style.opacity=1}">'+MOD_LABELS[m]+'</button>';});
+  document.getElementById('newUserModules').innerHTML=sel+'<span style="font-size:11px;color:var(--text2);margin-left:4px">点击灰色=不给看</span>';
 }
 async function toggleAddUser(){var e=document.getElementById('addUserForm');e.style.display=e.style.display==='none'?'block':'none';renderUsers();}
 async function addUser(){
@@ -564,10 +564,9 @@ async function addUser(){
 }
 async function loadUsers(){
   try{var users=await callRpc('api_users_list',{tok:getToken()});
-    document.getElementById('userList').innerHTML=users.map(function(u){return'<div class="script-card"><div class="sc-title">'+escapeHtml(u.username)+' <span class="chip chip-red">'+escapeHtml(u.role)+'</span>'+'</div><div class="sc-body">'+JSON.stringify(u.permissions)+'</div><div class="sc-actions">'+(u.username!=='admin'?'<button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteUser('+u.id+')">删除</button>':'<span style="font-size:12px;color:var(--text2)">不可删除</span>')+'</div></div>';}).join('')||'<p style="text-align:center;color:var(--text2)">加载中...</p>';
+    document.getElementById('userList').innerHTML=users.map(function(u){var ps=u.permissions||{},mods=ps.modules||[],edit=ps.can_edit;var labels=mods.map(function(m){return MOD_LABELS[m]||m;}).join('、');return'<div class="script-card"><div class="sc-title">'+escapeHtml(u.username)+' <span class="chip chip-red">'+escapeHtml(u.role)+'</span> <span class="chip chip-green">'+(edit?'可编辑':'只读')+'</span></div><div class="sc-body">模块：'+(mods.length?labels:'无')+'</div><div class="sc-actions">'+(u.username!=='admin'?'<button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteUser('+u.id+')">删除</button>':'<span style="font-size:12px;color:var(--text2)">管理员不可删除</span>')+'</div></div>';}).join('')||'<p style="text-align:center;color:var(--text2)">加载中...</p>';
   }catch(e){}
 }
-async function deleteUser(id){if(!confirm('删除该用户?'))return;try{await callRpc('api_users_del',{tok:getToken(),id_:id});loadUsers();}catch(e){alert(sanitizeError(e));}}
 
 // AUDIT
 async function renderAudit(){
