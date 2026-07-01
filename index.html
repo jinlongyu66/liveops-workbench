@@ -470,19 +470,19 @@ async function runAI(){
   var system='你是直播运营专家，帮助主播提升表现。根据需求生成实用内容，简洁专业，用中文。';
   var fullPrompt='';
   if(aiPreset==='script'){
-    system='你是直播话术专家。根据场景生成2-3条实用话术，每条含标题和正文，风格亲切自然，用中文。';
+    system='你是顶级娱乐直播话术师，专门为抖音女主播写话术。每条话术要：口语化、有节奏感、带emoji、制造互动钩子。长短句结合，不要像念稿。每段标注【标题】和【正文】，给2-3条。';
     fullPrompt='场景：'+(ctx||'通用')+'。需求：'+(prompt||'生成话术');
   }else if(aiPreset==='lighting'){
-    system='你是直播灯光工程师。推荐灯光方案：主灯、辅灯、轮廓灯、美颜参数、备注。格式：主灯：xxx | 辅灯：xxx | 轮廓灯：xxx | 美颜：xxx | 备注：xxx。用中文。';
+    system='你是专业直播间灯光师。根据不同直播风格推荐灯光方案，考虑：女主播出镜效果、氛围营造、产品展示。给出具体参数。格式：\n【主灯】型号位置色温\n【辅灯】型号位置色温\n【轮廓灯】型号位置色温\n【美颜参数】\n【布光要点】';
     fullPrompt='风格：'+(ctx||'通用')+'。需求：'+(prompt||'推荐灯光');
   }else if(aiPreset==='pk'){
-    system='你是直播PK教练。根据对手信息给出200字策略：开场策略、拉票话术、礼物节奏、反击时机。具体可执行，用中文。';
+    system='你是知名直播PK战术教练。给出具体可执行的PK策略：怎么开场造势、关键节点怎么拉票、什么时机送礼节奏最好、如何制造紧张感刺激消费。用短句、带emoji、像教练在赛前布置战术。300字以内。';
     fullPrompt='对手特点：'+(ctx||'未知')+'。需求：'+(prompt||'PK策略');
   }else if(aiPreset==='vip'){
-    system='你是直播运营专家。生成200字个性化互动话术：开场问候、话题引导、礼物感谢。亲切自然，用中文。';
+    system='你是高情商直播互动专家，专门帮主播维护大哥关系。话术要：不刻意、有温度、让对方感到被重视。包含：个性化问候、自然话题过渡、恰到好处的感谢、下次见面的暗示。200字以内。';
     fullPrompt='大哥特点：'+(ctx||'未知')+'。需求：'+(prompt||'互动话术');
   }else if(aiPreset==='schedule'){
-    system='你是直播运营排班专家。分析排班情况给200字优化建议：黄金时段、主播疲劳度、收入最大化。用中文。';
+    system='你是直播运营总监，管理多主播排班。分析排班合理性：黄金时段（20-24点）覆盖是否充分、是否有主播连续上播导致疲劳、周末和平时安排是否差异化。给具体调整建议。200字以内。';
     fullPrompt='排班情况：'+(ctx||'未知')+'。需求：'+(prompt||'排班建议');
   }else{
     fullPrompt=prompt||'请给我一些直播运营建议';
@@ -497,7 +497,7 @@ async function runAI(){
 
 async function callAIWithPrompt(apiKey,model,prompt,system,maxTokens){
   maxTokens=maxTokens||500;var url,headers,body;
-  if(model==='claude'){url='https://api.anthropic.com/v1/messages';headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};body=JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:maxTokens,system:system,messages:[{role:'user',content:prompt}]});}
+  if(model==='claude'){url='https://api.anthropic.com/v1/messages';headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};body=JSON.stringify({model:'claude-sonnet-5',max_tokens:maxTokens,system:system,messages:[{role:'user',content:prompt}]});}
   else if(model==='deepseek'){url='https://api.deepseek.com/v1/chat/completions';headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:'deepseek-chat',max_tokens:maxTokens,messages:[{role:'system',content:system},{role:'user',content:prompt}]});}
   else if(model==='openai'){url='https://api.openai.com/v1/chat/completions';headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:'gpt-4o-mini',max_tokens:maxTokens,messages:[{role:'system',content:system},{role:'user',content:prompt}]});}
   else{url=getCustomEp();headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:getCustomModel()||'gpt-4o-mini',max_tokens:maxTokens,messages:[{role:'system',content:system},{role:'user',content:prompt}]});}
@@ -603,7 +603,7 @@ async function callAI(apiKey,model,r){
   var prev=findPrev(r.streamer,r.date);
   var prompt='直播数据：'+JSON.stringify({streamer:r.streamer,date:r.date,views:r.views,peak:r.peak,stay:r.stay,fans:r.fans,income:r.income,payers:r.payers,bigGift:r.big_gift,bigGiftAmt:r.big_gift_amt,pkCount:r.pk_count,pkWin:r.pk_win,yesterday:prev||null});
   var url,headers,body;
-  if(model==='claude'){url='https://api.anthropic.com/v1/messages';headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};body=JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,system:'你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。',messages:[{role:'user',content:prompt}]});}
+  if(model==='claude'){url='https://api.anthropic.com/v1/messages';headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'};body=JSON.stringify({model:'claude-sonnet-5',max_tokens:800,system:'你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。',messages:[{role:'user',content:prompt}]});}
   else if(model==='deepseek'){url='https://api.deepseek.com/v1/chat/completions';headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:'deepseek-chat',max_tokens:800,messages:[{role:'system',content:'你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。'},{role:'user',content:prompt}]});}
   else if(model==='openai'){url='https://api.openai.com/v1/chat/completions';headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:'gpt-4o-mini',max_tokens:800,messages:[{role:'system',content:'你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。'},{role:'user',content:prompt}]});}
   else{url=getCustomEp();headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};body=JSON.stringify({model:getCustomModel()||'gpt-4o-mini',max_tokens:800,messages:[{role:'system',content:'你是直播运营复盘教练。根据数据生成300字中文复盘：数据总览、亮点、待改进、明日建议。用数据说话。'},{role:'user',content:prompt}]});}
