@@ -351,8 +351,9 @@ function applyPermissions(){
   // Store permissions globally for render functions to check
   window._canEdit=edit;window._isAdmin=isA;
   if(!edit&&!isA){
+    // Force hide all edit/add/delete elements via aggressive CSS
     var s=document.createElement('style');s.id='viewer-lock';
-    s.textContent='.sc-actions button{display:none!important}';
+    s.textContent='.sc-actions button{display:none!important}button[onclick*=toggleAdd]{display:none!important}button[onclick*=addScript]{display:none!important}button[onclick*=addLight]{display:none!important}button[onclick*=addStreamer]{display:none!important}button[onclick*=addVip]{display:none!important}button[onclick*=addOpp]{display:none!important}button[onclick*=addSchedule]{display:none!important}button[onclick*=addWorkLog]{display:none!important}button[onclick*=addUser]{display:none!important}button[onclick*=saveRecapDirect]{display:none!important}button[onclick*=saveRecap]{display:none!important}button[onclick*=editScript]{display:none!important}button[onclick*=editLight]{display:none!important}button[onclick*=editStreamer]{display:none!important}button[onclick*=editVip]{display:none!important}button[onclick*=editOpp]{display:none!important}button[onclick*=deleteScript]{display:none!important}button[onclick*=deleteLight]{display:none!important}button[onclick*=deleteStreamer]{display:none!important}button[onclick*=deleteVip]{display:none!important}button[onclick*=deleteOpp]{display:none!important}button[onclick*=deleteSchedule]{display:none!important}button[onclick*=deleteWorkLog]{display:none!important}button[onclick*=deleteUser]{display:none!important}';
     var old=document.getElementById('viewer-lock');if(old)old.remove();
     document.head.appendChild(s);
   }else{
@@ -507,7 +508,7 @@ function renderScripts(){
   document.getElementById('scriptList').innerHTML=list.map(function(s){return'<div class="script-card"><div class="sc-title">'+escapeHtml(s.title)+'<span class="chip chip-red">'+escapeHtml(s.cat)+'</span></div><div class="sc-body">'+escapeHtml(s.body)+'</div><div class="sc-actions"><button class="btn btn-outline btn-sm" onclick="copyScript('+s.id+')">📋</button> <button class="btn btn-sm" style="color:var(--blue)" onclick="editScript('+s.id+')">✏️</button> <button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteScript('+s.id+')">🗑</button></div></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无话术</p>';
 }
 function toggleAddScript(){if(!canEdit())return alert("只读");editId=null;var e=document.getElementById('addScriptForm');e.style.display=e.style.display==='none'?'block':'none';}
-stripButtons("scriptList");function editScript(id){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");var s=D.scripts.find(function(x){return x.id===id;});if(!s)return;editId=id;document.getElementById("newScriptCat").value=s.cat;document.getElementById("newScriptTitle").value=s.title;document.getElementById("newScriptBody").value=s.body;document.getElementById("addScriptForm").style.display="block";}
+stripButtons("scriptList");function editScript(id){var s=D.scripts.find(function(x){return x.id===id;});if(!s)return;editId=id;document.getElementById("newScriptCat").value=s.cat;document.getElementById("newScriptTitle").value=s.title;document.getElementById("newScriptBody").value=s.body;document.getElementById("addScriptForm").style.display="block";}
 async function addScript(){
   if(!canEdit())return alert('无编辑权限');
   var cat=document.getElementById('newScriptCat').value,title=document.getElementById('newScriptTitle').value.trim(),body=document.getElementById('newScriptBody').value.trim();
@@ -516,7 +517,7 @@ async function addScript(){
   document.getElementById('newScriptTitle').value='';document.getElementById('newScriptBody').value='';document.getElementById('addScriptForm').style.display='none';
   await loadAllData();renderScripts();
 }
-async function deleteScript(id){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");if(!confirm('删除？'))return;try{await callRpc('api_scripts_del',{tok:getToken(),id_:id});await loadAllData();renderScripts();}catch(e){alert(sanitizeError(e));}}
+async function deleteScript(id){if(!confirm('删除？'))return;try{await callRpc('api_scripts_del',{tok:getToken(),id_:id});await loadAllData();renderScripts();}catch(e){alert(sanitizeError(e));}}
 function copyScript(id){var s=D.scripts.find(function(x){return x.id===id;});if(s)navigator.clipboard.writeText(s.body).then(function(){alert('✅ 已复制');});}
 
 // AI助手
@@ -675,14 +676,14 @@ function renderVips(){
 }
 function toggleAddVip(){if(!canEdit())return alert("只读");editId=null;var e=document.getElementById('addVipForm');e.style.display=e.style.display==='none'?'block':'none';}
 stripButtons("vipList");function editVip(id){var v=D.vips.find(function(x){return x.id===id;});if(!v)return;editId=id;document.getElementById("newVipName").value=v.name;document.getElementById("newVipPlatform").value=v.platform;document.getElementById("newVipSpent").value=v.total_spent||0;document.getElementById("newVipPrefs").value=v.preferences||"";document.getElementById("newVipBirthday").value=v.birthday||"";document.getElementById("newVipNotes").value=v.notes||"";document.getElementById("addVipForm").style.display="block";}
-async function addVip(){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");
+async function addVip(){
   var name=document.getElementById('newVipName').value.trim(),platform=document.getElementById('newVipPlatform').value,spent=+document.getElementById('newVipSpent').value||0,prefs=document.getElementById('newVipPrefs').value.trim(),bday=document.getElementById('newVipBirthday').value,notes=document.getElementById('newVipNotes').value.trim();
   if(!name)return alert('请填写昵称');
   if(editId){try{await callRpc('api_vips_update',{tok:getToken(),id_:editId,name_:name,platform_:platform,total_spent_:spent,preferences_:prefs,birthday_:bday,notes_:notes});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_vips_add',{tok:getToken(),name_:name,platform_:platform,total_spent_:spent,preferences_:prefs,birthday_:bday,notes_:notes});}catch(e){return alert(sanitizeError(e));}}
   ['newVipName','newVipSpent','newVipPrefs','newVipBirthday','newVipNotes'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('addVipForm').style.display='none';await loadAllData();renderVips();
 }
-async function deleteVip(id){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");if(!confirm('删除？'))return;try{await callRpc('api_vips_del',{tok:getToken(),id_:id});await loadAllData();renderVips();}catch(e){alert(sanitizeError(e));}}
+async function deleteVip(id){if(!confirm('删除？'))return;try{await callRpc('api_vips_del',{tok:getToken(),id_:id});await loadAllData();renderVips();}catch(e){alert(sanitizeError(e));}}
 async function generateVipScript(id){
   var v=D.vips.find(function(x){return x.id===id;});if(!v)return;
   var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
@@ -703,14 +704,14 @@ function renderOpponents(){
 }
 function toggleAddOpponent(){if(!canEdit())return alert("只读");editId=null;var e=document.getElementById('addOpponentForm');e.style.display=e.style.display==='none'?'block':'none';}
 stripButtons("opponentList");function editOpponent(id){var o=D.opponents.find(function(x){return x.id===id;});if(!o)return;editId=id;document.getElementById("newOppName").value=o.name;document.getElementById("newOppPlatform").value=o.platform;document.getElementById("newOppRank").value=o.estimated_rank||"";document.getElementById("newOppStyle").value=o.typical_style||"";document.getElementById("newOppWins").value=o.win_count||0;document.getElementById("newOppLosses").value=o.loss_count||0;document.getElementById("newOppStrategy").value=o.strategy_notes||"";document.getElementById("addOpponentForm").style.display="block";}
-async function addOpponent(){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");
+async function addOpponent(){
   var name=document.getElementById('newOppName').value.trim(),platform=document.getElementById('newOppPlatform').value,rank=document.getElementById('newOppRank').value.trim(),style=document.getElementById('newOppStyle').value.trim(),wins=+document.getElementById('newOppWins').value||0,losses=+document.getElementById('newOppLosses').value||0,strategy=document.getElementById('newOppStrategy').value.trim();
   if(!name)return alert('请填写对手名称');
   if(editId){try{await callRpc('api_opponents_update',{tok:getToken(),id_:editId,name_:name,platform_:platform,rank_:rank,style_:style,wins_:wins,losses_:losses,notes_:strategy});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_opponents_add',{tok:getToken(),name_:name,platform_:platform,estimated_rank_:rank,typical_style_:style,win_count_:wins,loss_count_:losses,strategy_notes_:strategy});}catch(e){return alert(sanitizeError(e));}}
   ['newOppName','newOppRank','newOppStyle','newOppWins','newOppLosses','newOppStrategy'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('addOpponentForm').style.display='none';await loadAllData();renderOpponents();
 }
-async function deleteOpponent(id){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");if(!confirm('删除？'))return;try{await callRpc('api_opponents_del',{tok:getToken(),id_:id});await loadAllData();renderOpponents();}catch(e){alert(sanitizeError(e));}}
+async function deleteOpponent(id){if(!confirm('删除？'))return;try{await callRpc('api_opponents_del',{tok:getToken(),id_:id});await loadAllData();renderOpponents();}catch(e){alert(sanitizeError(e));}}
 async function generatePKStrategy(id){
   var o=D.opponents.find(function(x){return x.id===id;});if(!o)return;
   var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
@@ -752,7 +753,7 @@ function renderSchedule(){
 function shiftWeek(n){scheduleWeekOffset+=n;renderSchedule();}
 function jumpToDate(){var d=document.getElementById('scheduleJumpDate').value;if(!d)return;var t=new Date(),m=getMonday(new Date(t)),td=new Date(d);m.setHours(0,0,0,0);td.setHours(0,0,0,0);scheduleWeekOffset=Math.round((td-m)/(7*86400000));renderSchedule();}
 function toggleAddSchedule(){if(!canEdit())return alert("只读");var e=document.getElementById('addScheduleForm');e.style.display=e.style.display==='none'?'block':'none';}
-async function addSchedule(){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");
+async function addSchedule(){
   var sn=document.getElementById('newScheduleStreamer').value,date=document.getElementById('newScheduleDate').value,slot=document.getElementById('newScheduleSlot').value.trim(),notes=document.getElementById('newScheduleNotes').value.trim();
   if(!sn||!date||!slot)return alert('请填写完整');
   try{await callRpc('api_schedules_add',{tok:getToken(),schedule_date_:date,streamer_:sn,time_slot_:slot,status_:'scheduled',notes_:notes});}catch(e){return alert(sanitizeError(e));}
@@ -760,7 +761,7 @@ async function addSchedule(){if(window._canEdit===false&&window._isAdmin===false
   document.getElementById('addScheduleForm').style.display='none';await loadAllData();renderSchedule();
 }
 async function updateScheduleStatus(id,status){try{await callRpc('api_schedules_status',{tok:getToken(),id_:id,status_:status});await loadAllData();renderSchedule();}catch(e){alert(sanitizeError(e));}}
-async function deleteSchedule(id){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");if(!confirm('删除？'))return;try{await callRpc('api_schedules_del',{tok:getToken(),id_:id});await loadAllData();renderSchedule();}catch(e){alert(sanitizeError(e));}}
+async function deleteSchedule(id){if(!confirm('删除？'))return;try{await callRpc('api_schedules_del',{tok:getToken(),id_:id});await loadAllData();renderSchedule();}catch(e){alert(sanitizeError(e));}}
 async function suggestScheduleOptimal(){
   var key=getApiKey();if(!key)return alert('请先在复盘页设置 API Key');
   var system='你是直播运营排班专家。分析现有排班，给200字优化建议：黄金时段覆盖、主播疲劳度、收入最大化。用中文。';
@@ -805,15 +806,15 @@ function renderLights(){
   document.getElementById('lightList').innerHTML=D.lighting.map(function(l){return'<div class="light-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong>'+escapeHtml(l.name)+'</strong><span class="chip chip-blue">'+escapeHtml(l.style||'')+'</span></div><div style="font-size:13px;color:var(--text2);line-height:1.6">🔆'+escapeHtml(l.main||'')+' 💡'+escapeHtml(l.fill||'')+' 🔦'+escapeHtml(l.rim||'')+' ✨'+escapeHtml(l.beauty||'')+(l.note?' 📝'+escapeHtml(l.note):'')+'</div><button class="btn btn-outline btn-sm" onclick="editLight('+l.id+')" style=\"margin-top:8px;color:var(--blue)\">✏️</button> <button class=\"btn btn-outline btn-sm\" onclick=\"deleteLight('+l.id+')\" style=\"margin-top:8px\">删除</button></div>';}).join('')||'<p style=\"text-align:center;color:var(--text2);padding:20px\">暂无方案</p>';
 }
 function toggleAddLight(){if(!canEdit())return alert("只读");editId=null;var e=document.getElementById('addLightForm');e.style.display=e.style.display==='none'?'block':'none';}
-stripButtons("lightList");function editLight(id){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");var l=D.lighting.find(function(x){return x.id===id;});if(!l)return;editId=id;document.getElementById("newLightName").value=l.name||"";document.getElementById("newLightStyle").value=l.style||"";document.getElementById("newLightMain").value=l.main||"";document.getElementById("newLightFill").value=l.fill||"";document.getElementById("newLightRim").value=l.rim||"";document.getElementById("newLightBeauty").value=l.beauty||"";document.getElementById("newLightNote").value=l.note||"";document.getElementById("addLightForm").style.display="block";}
-async function addLight(){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");
+stripButtons("lightList");function editLight(id){var l=D.lighting.find(function(x){return x.id===id;});if(!l)return;editId=id;document.getElementById("newLightName").value=l.name||"";document.getElementById("newLightStyle").value=l.style||"";document.getElementById("newLightMain").value=l.main||"";document.getElementById("newLightFill").value=l.fill||"";document.getElementById("newLightRim").value=l.rim||"";document.getElementById("newLightBeauty").value=l.beauty||"";document.getElementById("newLightNote").value=l.note||"";document.getElementById("addLightForm").style.display="block";}
+async function addLight(){
   var item={tok:getToken(),name_:document.getElementById('newLightName').value.trim(),style_:document.getElementById('newLightStyle').value.trim(),main_:document.getElementById('newLightMain').value.trim(),fill_:document.getElementById('newLightFill').value.trim(),rim_:document.getElementById('newLightRim').value.trim(),beauty_:document.getElementById('newLightBeauty').value.trim(),note_:document.getElementById('newLightNote').value.trim()};
   if(!item.name_)return alert('请填写方案名称');
   if(editId){try{await callRpc('api_lighting_update',{tok:getToken(),id_:editId,name_:item.name_,style_:item.style_,main_:item.main_,fill_:item.fill_,rim_:item.rim_,beauty_:item.beauty_,note_:item.note_});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_lighting_add',item);}catch(e){return alert(sanitizeError(e));}}
   ['newLightName','newLightStyle','newLightMain','newLightFill','newLightRim','newLightBeauty','newLightNote'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('addLightForm').style.display='none';await loadAllData();renderLights();
 }
-async function deleteLight(id){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");if(!confirm('删除？'))return;try{await callRpc('api_lighting_del',{tok:getToken(),id_:id});await loadAllData();renderLights();}catch(e){alert(sanitizeError(e));}}
+async function deleteLight(id){if(!confirm('删除？'))return;try{await callRpc('api_lighting_del',{tok:getToken(),id_:id});await loadAllData();renderLights();}catch(e){alert(sanitizeError(e));}}
 
 // STREAMERS
 function renderStreamers(){
@@ -821,15 +822,15 @@ function renderStreamers(){
   document.getElementById('streamerList').innerHTML=D.streamers.map(function(s){return'<div class="streamer-card"><div style="display:flex;justify-content:space-between"><strong>'+escapeHtml(s.name)+'</strong><span class="chip chip-green">'+escapeHtml(s.platform||'')+'</span></div><div style="font-size:13px;color:var(--text2);margin-top:4px">'+escapeHtml(s.note||'')+' · '+escapeHtml(s.start_date||'')+'</div><button class="btn btn-outline btn-sm" onclick="editStreamer('+s.id+')" style=\"margin-top:8px;color:var(--blue)\">✏️</button> <button class=\"btn btn-outline btn-sm\" onclick=\"deleteStreamer('+s.id+')\" style=\"margin-top:8px\">删除</button></div>';}).join('')||'<p style=\"text-align:center;color:var(--text2);padding:20px\">暂无主播</p>';
 }
 function toggleAddStreamer(){if(!canEdit())return alert("只读");editId=null;var e=document.getElementById('addStreamerForm');e.style.display=e.style.display==='none'?'block':'none';}
-stripButtons("streamerList");function editStreamer(id){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");var s=D.streamers.find(function(x){return x.id===id;});if(!s)return;editId=id;document.getElementById("newStreamerName").value=s.name;document.getElementById("newStreamerPlatform").value=s.platform;document.getElementById("newStreamerNote").value=s.note||"";document.getElementById("addStreamerForm").style.display="block";}
-async function addStreamer(){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");
+stripButtons("streamerList");function editStreamer(id){var s=D.streamers.find(function(x){return x.id===id;});if(!s)return;editId=id;document.getElementById("newStreamerName").value=s.name;document.getElementById("newStreamerPlatform").value=s.platform;document.getElementById("newStreamerNote").value=s.note||"";document.getElementById("addStreamerForm").style.display="block";}
+async function addStreamer(){
   var name=document.getElementById('newStreamerName').value.trim(),platform=document.getElementById('newStreamerPlatform').value,note=document.getElementById('newStreamerNote').value.trim();
   if(!name)return alert('请填写主播昵称');
   if(editId){try{await callRpc('api_streamers_update',{tok:getToken(),id_:editId,name_:name,platform_:platform,note_:note});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_streamers_add',{tok:getToken(),name_:name,platform_:platform,note_:note});}catch(e){return alert(sanitizeError(e));}}
   ['newStreamerName','newStreamerNote'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('addStreamerForm').style.display='none';await loadAllData();renderStreamers();
 }
-async function deleteStreamer(id){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");if(!confirm('删除？'))return;try{await callRpc('api_streamers_del',{tok:getToken(),id_:id});await loadAllData();renderStreamers();}catch(e){alert(sanitizeError(e));}}
+async function deleteStreamer(id){if(!confirm('删除？'))return;try{await callRpc('api_streamers_del',{tok:getToken(),id_:id});await loadAllData();renderStreamers();}catch(e){alert(sanitizeError(e));}}
 
 // RECAP
 var recapChart=null,generatedReviewText='';
@@ -897,11 +898,11 @@ function ruleBasedReview(r){
   return rep+'\n\n💡建议：保持灯光质量，准备互动话题，主动引导礼物。\n'+'─'.repeat(40)+'\n📝补充笔记：\n（手动填写...）';
 }
 function copyReview(){navigator.clipboard.writeText(generatedReviewText).then(function(){alert('✅ 已复制');});}
-async function saveRecapDirect(){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");
+async function saveRecapDirect(){
   var r=getRecapData();if(!r.streamer)return alert('请选择主播');
   try{await callRpc('api_recaps_save',{tok:getToken(),data_:r});await loadAllData();renderRecapHistory();renderRecapChart();alert('✅ 已保存');}catch(e){alert(sanitizeError(e));}
 }
-async function saveRecap(){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");
+async function saveRecap(){
   var r=window._lastRecapData||getRecapData();if(!r.streamer)return alert('请选择主播');
   try{await callRpc('api_recaps_save',{tok:getToken(),data_:r});}catch(e){return alert(sanitizeError(e));}
   await loadAllData();renderRecapHistory();renderRecapChart();alert('✅ 已保存');
@@ -934,13 +935,13 @@ function renderWorkLog(){
   document.getElementById('workLogList').innerHTML=logs.map(function(l){return'<div class="worklog-entry"><div class="wl-time">'+escapeHtml(l.time)+'</div><div class="wl-content">'+escapeHtml(l.content)+'</div><button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="editWorkLog('+l.id+')">✏️</button> <button class="btn btn-sm" style="color:var(--accent);margin-top:4px" onclick="deleteWorkLog('+l.id+')">删除</button></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
 }
 function editWorkLog(id){var logs=D.workLogs;var found=null;for(var d in logs){found=logs[d].find(function(l){return l.id===id;});if(found)break;}if(!found)return;editId=id;document.getElementById("wlTime").value=found.time;document.getElementById("wlContent").value=found.content;}
-async stripButtons("workLogList");function addWorkLog(){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");
+async stripButtons("workLogList");function addWorkLog(){
   var td=today(),time=document.getElementById('wlTime').value,content=document.getElementById('wlContent').value.trim();
   if(!time||!content)return;
   if(editId){try{await callRpc('api_work_logs_update',{tok:getToken(),id_:editId,content_:content});}catch(e){return alert(sanitizeError(e));}editId=null;}else{try{await callRpc('api_work_logs_add',{tok:getToken(),date_:td,time_:time,content_:content});}catch(e){return alert(sanitizeError(e));}}
   document.getElementById('wlContent').value='';await loadAllData();renderWorkLog();
 }
-async function deleteWorkLog(id){if(window._canEdit===false&&window._isAdmin===false)return alert("zhi du");if(!confirm('删除？'))return;try{await callRpc('api_work_logs_del',{tok:getToken(),id_:id});await loadAllData();renderWorkLog();}catch(e){alert(sanitizeError(e));}}
+async function deleteWorkLog(id){if(!confirm('删除？'))return;try{await callRpc('api_work_logs_del',{tok:getToken(),id_:id});await loadAllData();renderWorkLog();}catch(e){alert(sanitizeError(e));}}
 
 function initApp(){document.getElementById('recapDate').value=today();switchPage('scripts');}
 </script>
