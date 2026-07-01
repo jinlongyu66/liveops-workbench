@@ -201,11 +201,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 </div>
 
 <div class="page" id="page-settings">
-  <div class="card"><h2>🔒 修改登录密码</h2>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:8px">需要管理密码才能修改。登录密码可以分享给别人，管理密码只有你知道。</p>
+  <div class="card" id="adminPwCard"><h2>🔒 修改登录密码（管理员）</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px">需要管理密码。改的是所有用户共用的登录密码。</p>
     <div class="form-group"><label>管理密码</label><input type="password" id="oldPassword" placeholder="只有你知道的密码"></div>
     <div class="form-group"><label>新登录密码</label><input type="password" id="newPassword" placeholder="新密码（至少4位）"></div>
     <button class="btn btn-primary" onclick="changePassword()">🔒 修改</button></div>
+  <div class="card"><h2>👤 修改个人密码</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px">修改你自己的账号密码。</p>
+    <div class="form-group"><label>旧密码</label><input type="password" id="myOldPw" placeholder="输入当前密码"></div>
+    <div class="form-group"><label>新密码</label><input type="password" id="myNewPw" placeholder="新密码（至少4位）"></div>
+    <button class="btn btn-primary" onclick="changeMyPassword()">👤 修改</button></div>
   <div class="card"><h2>💾 数据备份</h2>
     <p style="font-size:13px;color:var(--text2);margin-bottom:12px">导出所有数据为 JSON 文件。网站出问题时可重新导入恢复。</p>
     <div style="display:flex;gap:8px">
@@ -326,6 +331,7 @@ function applyPermissions(){
   var u=getUser(),isA=isAdmin(),edit=canEdit();
   // Admin-only nav buttons
   ['navUsers','navAudit','bnUsers','bnAudit'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display=isA?'':'none';});
+  var ac=document.getElementById('adminPwCard');if(ac)ac.style.display=isA?'':'none';
   // Filter top nav tabs based on module permissions
   var tabs=['scripts','lighting','streamers','recap','worklog','vips','opponents','schedule','revenue'];
   tabs.forEach(function(m){
@@ -378,6 +384,13 @@ async function changePassword(){
   var ap=document.getElementById('oldPassword').value.trim(),np=document.getElementById('newPassword').value.trim();
   if(!ap)return alert('请输入管理密码');if(!np)return alert('请输入新密码');if(np.length<4)return alert('密码至少4位');
   try{var ok=await callRpc('change_pw',{tok:getToken(),admin_pw:ap,new_password:np});if(ok)alert('✅ 登录密码已修改！');else alert('❌ 管理密码错误');document.getElementById('oldPassword').value='';document.getElementById('newPassword').value='';}
+  catch(e){alert(sanitizeError(e));}
+}
+
+async function changeMyPassword(){
+  var op=document.getElementById('myOldPw').value.trim(),np=document.getElementById('myNewPw').value.trim();
+  if(!op)return alert('请输入旧密码');if(!np||np.length<4)return alert('新密码至少4位');
+  try{var ok=await callRpc('change_own_pw',{tok:getToken(),old_pw:op,new_pw:np});if(ok)alert('✅ 密码已修改！');else alert('❌ 旧密码错误');document.getElementById('myOldPw').value='';document.getElementById('myNewPw').value='';}
   catch(e){alert(sanitizeError(e));}
 }
 
