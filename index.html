@@ -327,6 +327,7 @@ function getUser(){try{return JSON.parse(sessionStorage.getItem('liveops_user')|
 function isAdmin(){return getUser().role==='admin';}
 function canEdit(){var u=getUser();if(u.role==='admin')return true;return u.permissions&&u.permissions.can_edit;}
 function hasModule(m){var u=getUser();if(u.role==='admin')return true;return u.permissions&&u.permissions.modules&&u.permissions.modules.indexOf(m)!==-1;}
+function showActions(html){return canEdit()||isAdmin()?html:'';}
 function applyPermissions(){
   var u=getUser(),isA=isAdmin(),edit=canEdit();
   // Admin-only nav buttons
