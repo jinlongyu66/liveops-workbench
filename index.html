@@ -86,7 +86,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 
 <div class="login-overlay" id="loginOverlay">
   <h1>🎛️ 运营工作台</h1>
-  <input type="password" id="loginPassword" placeholder="输入密码" onkeydown="if(event.key==='Enter')doLogin()">
+  <input type="text" id="loginUser" placeholder="用户名" style="margin-bottom:8px"><input type="password" id="loginPassword" placeholder="输入密码" onkeydown="if(event.key==='Enter')doLogin()">
   <button onclick="doLogin()">🔓 登录</button>
   <div class="error" id="loginError"></div>
   <div class="hint">默认密码：admin123</div>
@@ -107,7 +107,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
   <button data-page="opponents">🆚 对手</button>
   <button data-page="schedule">📅 排班</button>
   <button data-page="revenue">💰 收入</button>
-  <button data-page="ai">🤖 AI</button>
+  <button data-page="users" id="navUsers" style="display:none">👥 用户</button><button data-page="audit" id="navAudit" style="display:none">📋 记录</button><button data-page="ai">🤖 AI</button>
   <button data-page="settings">⚙️ 设置</button>
 </nav>
 
@@ -217,6 +217,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
   <div class="card"><button class="btn btn-outline" onclick="logout()" style="width:100%;color:var(--accent);border-color:var(--accent)">🚪 退出登录</button></div>
 </div>
 
+<div class="page" id="page-users">
+  <div class="card"><h2>👥 用户管理</h2>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:12px" onclick="toggleAddUser()">+ 添加用户</button>
+    <div id="addUserForm" style="display:none;margin-bottom:12px;padding:12px;background:var(--bg);border-radius:8px">
+      <div class="form-row"><div class="form-group"><label>用户名</label><input type="text" id="newUserName"></div>
+      <div class="form-group"><label>密码</label><input type="password" id="newUserPw"></div></div>
+      <div class="form-row"><div class="form-group"><label>角色</label><select id="newUserRole"><option value="viewer">主播(viewer)</option><option value="admin">管理员(admin)</option></select></div>
+      <div class="form-group"><label>可看模块</label><div id="newUserModules" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"></div></div></div>
+      <div class="form-group"><label><input type="checkbox" id="newUserEdit" style="width:auto;margin-right:4px">允许编辑</label></div>
+      <button class="btn btn-primary btn-sm" onclick="addUser()">保存</button></div>
+    <div id="userList"></div></div>
+</div>
+<div class="page" id="page-audit">
+  <div class="card"><h2>📋 操作记录</h2><div id="auditList"></div></div>
+</div>
 <!-- 👑 大哥管理 -->
 <div class="page" id="page-vips">
   <div class="card"><h2>👑 大哥管理</h2>
@@ -290,7 +305,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
   <button data-page="opponents"><span class="icon">🆚</span>PK</button>
   <button data-page="schedule"><span class="icon">📅</span>排班</button>
   <button data-page="revenue"><span class="icon">💰</span>收入</button>
-  <button data-page="ai"><span class="icon">🤖</span>AI</button>
+  <button data-page="users" id="bnUsers" style="display:none"><span class="icon">👥</span>用户</button><button data-page="audit" id="bnAudit" style="display:none"><span class="icon">📋</span>记录</button><button data-page="ai"><span class="icon">🤖</span>AI</button>
 </nav>
 
 <script>
@@ -303,6 +318,25 @@ var SB_URL='https://xyeecqpbaxzjrbukipyi.supabase.co';
 var SB_KEY='sb_publishable_vtschTBXX1hOhJ0BYLbOag_jsU2yL4m';
 
 function getToken(){return sessionStorage.getItem('liveops_token')||'';}
+function getUser(){try{return JSON.parse(sessionStorage.getItem('liveops_user')||'{}');}catch(e){return{};}}
+function isAdmin(){return getUser().role==='admin';}
+function canEdit(){var u=getUser();if(u.role==='admin')return true;return u.permissions&&u.permissions.can_edit;}
+function hasModule(m){var u=getUser();if(u.role==='admin')return true;return u.permissions&&u.permissions.modules&&u.permissions.modules.indexOf(m)!==-1;}
+function applyPermissions(){
+  var u=getUser(),isA=isAdmin();
+  // Show admin nav buttons
+  ['navUsers','navAudit','bnUsers','bnAudit'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display=isA?'':'none';});
+  // Hide edit buttons if viewer
+  if(!canEdit()){
+    var hideSelectors='#addScriptForm,#addLightForm,#addStreamerForm,#addVipForm,#addOpponentForm,#addScheduleForm,.script-card .sc-actions button';
+    setTimeout(function(){
+      document.querySelectorAll(hideSelectors).forEach(function(el){el.style.display='none';});
+      // Also hide add buttons
+      document.querySelectorAll('[onclick*="toggleAdd"],[onclick*="addVip"],[onclick*="addOpp"],[onclick*="addSchedule"],[onclick*="addStreamer"],[onclick*="addLight"],[onclick*="addScript"],[onclick*="addWorkLog"],[onclick*="saveRecap"]').forEach(function(el){if(el.textContent.indexOf('AI')===-1)el.style.display='none';});
+    },500);
+  }
+}
+
 
 async function callRpc(fnName,params){
   var h={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -318,13 +352,16 @@ var LOGIN_COOLDOWN=0;
 document.addEventListener('DOMContentLoaded',function(){document.getElementById('loginError').textContent='⏳ 连接中...';checkSession();});
 
 async function doLogin(){
-  if(LOGIN_COOLDOWN>Date.now()){document.getElementById('loginError').textContent='⏳ 请稍等几秒再试';return;}
-  var pw=document.getElementById('loginPassword').value;if(!pw)return;
+  if(LOGIN_COOLDOWN>Date.now()){document.getElementById('loginError').textContent='⏳ 请稍等';return;}
+  var un=document.getElementById('loginUser').value.trim(),pw=document.getElementById('loginPassword').value;
+  if(!un)return document.getElementById('loginError').textContent='请输入用户名';
+  if(!pw)return document.getElementById('loginError').textContent='请输入密码';
   document.getElementById('loginError').textContent='⏳ 验证中...';
   try{
-    var token=await callRpc('login',{password_text:pw});
-    if(!token){LOGIN_COOLDOWN=Date.now()+3000;document.getElementById('loginError').textContent='❌ 密码错误';return;}
-    sessionStorage.setItem('liveops_token',token);
+    var result=await callRpc('login',{username_in:un,password_in:pw});
+    if(result.error){LOGIN_COOLDOWN=Date.now()+3000;document.getElementById('loginError').textContent='❌ '+result.error;return;}
+    sessionStorage.setItem('liveops_token',result.token);
+    sessionStorage.setItem('liveops_user',JSON.stringify({username:result.username,role:result.role,permissions:result.permissions}));
     LOGIN_COOLDOWN=0;await onAuthSuccess();
   }catch(e){LOGIN_COOLDOWN=Date.now()+5000;document.getElementById('loginError').textContent=sanitizeError(e);}
 }
@@ -387,7 +424,7 @@ async function onAuthSuccess(){
   document.getElementById('statusBar').style.display='flex';
   document.getElementById('topNav').style.display='flex';
   document.getElementById('bottomNav').style.display='flex';
-  await loadAllData();initApp();
+  await loadAllData();applyPermissions();initApp();
 }
 
 async function loadAllData(){
@@ -422,7 +459,7 @@ function switchPage(name){
   document.querySelectorAll('[data-page="'+name+'"]').forEach(function(b){b.classList.add('active');});
   renderPage();
 }
-function renderPage(){if(currentPage==='scripts')renderScripts();if(currentPage==='lighting')renderLights();if(currentPage==='streamers')renderStreamers();if(currentPage==='recap')initRecap();if(currentPage==='worklog')renderWorkLog();if(currentPage==='vips')renderVips();if(currentPage==='opponents')renderOpponents();if(currentPage==='schedule')renderSchedule();if(currentPage==='revenue')renderRevenue();if(currentPage==='ai')renderAI();}
+function renderPage(){if(currentPage==='scripts')renderScripts();if(currentPage==='lighting')renderLights();if(currentPage==='streamers')renderStreamers();if(currentPage==='recap')initRecap();if(currentPage==='worklog')renderWorkLog();if(currentPage==='vips')renderVips();if(currentPage==='opponents')renderOpponents();if(currentPage==='schedule')renderSchedule();if(currentPage==='revenue')renderRevenue();if(currentPage==='ai')renderAI();if(currentPage==='users')renderUsers();if(currentPage==='audit')renderAudit();}
 
 document.getElementById('topNav').addEventListener('click',function(e){if(e.target.dataset.page)switchPage(e.target.dataset.page);});
 document.getElementById('bottomNav').addEventListener('click',function(e){var b=e.target.closest('button');if(b&&b.dataset.page)switchPage(b.dataset.page);});
@@ -508,6 +545,36 @@ async function callAIWithPrompt(apiKey,model,prompt,system,maxTokens){
 }
 
 function copyAiResult(){navigator.clipboard.writeText(_aiResultText).then(function(){alert('已复制');});}
+
+
+// USERS
+var ALL_MODULES=['scripts','lighting','streamers','recap','worklog','vips','opponents','schedule','revenue'];
+var MOD_LABELS={scripts:'话术',lighting:'灯光',streamers:'主播',recap:'复盘',worklog:'日志',vips:'大哥',opponents:'PK',schedule:'排班',revenue:'收入'};
+function renderUsers(){
+  var sel='';ALL_MODULES.forEach(function(m){sel+='<button class="chip chip-blue" style="cursor:pointer" id="um_'+m+'" onclick="var t=document.getElementById("um_'+m+'");t.classList.toggle("chip-green");t.classList.toggle("chip-blue")">'+MOD_LABELS[m]+'</button>';});
+  document.getElementById('newUserModules').innerHTML=sel;
+}
+async function toggleAddUser(){var e=document.getElementById('addUserForm');e.style.display=e.style.display==='none'?'block':'none';renderUsers();}
+async function addUser(){
+  var un=document.getElementById('newUserName').value.trim(),pw=document.getElementById('newUserPw').value,role=document.getElementById('newUserRole').value,edit=document.getElementById('newUserEdit').checked;
+  if(!un||!pw)return alert('请填写完整');
+  var mods=[];ALL_MODULES.forEach(function(m){if(document.getElementById('um_'+m).classList.contains('chip-green'))mods.push(m);});
+  try{await callRpc('api_users_add',{tok:getToken(),username_:un,password_:pw,role_:role,permissions_:{modules:mods,can_edit:edit}});}catch(e){return alert(sanitizeError(e));}
+  document.getElementById('addUserForm').style.display='none';loadUsers();
+}
+async function loadUsers(){
+  try{var users=await callRpc('api_users_list',{tok:getToken()});
+    document.getElementById('userList').innerHTML=users.map(function(u){return'<div class="script-card"><div class="sc-title">'+escapeHtml(u.username)+' <span class="chip chip-red">'+escapeHtml(u.role)+'</span>'+'</div><div class="sc-body">'+JSON.stringify(u.permissions)+'</div><div class="sc-actions">'+(u.username!=='admin'?'<button class="btn btn-sm" style="color:var(--accent);background:var(--accent-light)" onclick="deleteUser('+u.id+')">删除</button>':'<span style="font-size:12px;color:var(--text2)">不可删除</span>')+'</div></div>';}).join('')||'<p style="text-align:center;color:var(--text2)">加载中...</p>';
+  }catch(e){}
+}
+async function deleteUser(id){if(!confirm('删除该用户?'))return;try{await callRpc('api_users_del',{tok:getToken(),id_:id});loadUsers();}catch(e){alert(sanitizeError(e));}}
+
+// AUDIT
+async function renderAudit(){
+  try{var logs=await callRpc('api_audit_list',{tok:getToken(),limit_:200});
+    document.getElementById('auditList').innerHTML=logs.map(function(l){return'<div class="worklog-entry"><div class="wl-time">'+escapeHtml(l.created_at)+'</div><div class="wl-content"><strong>'+escapeHtml(l.username)+'</strong> '+escapeHtml(l.action)+' → '+escapeHtml(l.table_name)+' | '+escapeHtml(l.details||'')+'</div></div>';}).join('')||'<p style="text-align:center;color:var(--text2);padding:20px">暂无记录</p>';
+  }catch(e){}
+}
 
 // VIPS
 function renderVips(){
